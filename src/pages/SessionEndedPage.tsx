@@ -1,0 +1,2 @@
+import { LogIn } from 'lucide-react'; import { Link } from 'react-router-dom'; import { Button, Card } from '../components/ui'
+export function SessionEndedPage(){return <main className="grid min-h-screen place-items-center bg-canvas p-4"><Card className="max-w-md p-8 text-center"><h1 className="text-2xl font-bold">Sessao encerrada</h1><p className="mt-2 text-slate-500">Sua sessao expirou ou foi revogada. Entre novamente para continuar com seguranca.</p><Link to="/login"><Button className="mt-6"><LogIn className="size-4"/>Entrar novamente</Button></Link></Card></main>}

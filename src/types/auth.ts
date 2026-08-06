@@ -1,0 +1,3 @@
+export type Permission = 'dashboard.view' | 'agenda.view' | 'vehicles.view' | 'orders.view' | 'finance.view' | 'crm.view' | 'yard.view' | 'tools.view' | 'settings.manage'
+export interface User { id: string; name: string; email: string; role: 'Administrador' | 'Gestor' | 'Tecnico'; permissions: Permission[] }
+export interface TenantContext { companyId: string; companyName: string; branchId: string; branchName: string }
