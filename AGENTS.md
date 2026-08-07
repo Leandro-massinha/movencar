@@ -8,4 +8,6 @@ O MOVENCAR nao pode ter qualquer dependencia ou comunicacao com o Painel MEG. Na
 
 Antes de editar UI, leia `DESIGN_SYSTEM.md`. Reutilize `src/components/ui.tsx`; nao crie botoes, campos ou cards com medidas locais. Preserve acessibilidade, responsividade e as protecoes de rota. Rode `npm run lint`, `npm test` e `npm run build` antes de concluir.
 
-Toda experiencia visivel ao usuario final do MovenCar deve utilizar Portugues do Brasil (pt-BR) por padrao. Codigo interno, models, APIs e enums podem permanecer em ingles. A padronizacao ampla de textos existentes deve ocorrer em branch propria, nao como refatoracao incidental.
+Toda experiência visível ao usuário final do MovenCar deve utilizar Português do Brasil (pt-BR) por padrão. Código interno, modelos, APIs e enums podem permanecer em inglês.
+
+Toda nova página, modal, mensagem, botão, tabela, filtro e validação deve seguir o glossário oficial em `docs/PRODUCT_LANGUAGE.md`.

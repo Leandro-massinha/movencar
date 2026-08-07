@@ -68,7 +68,7 @@ async function assertCustomer(companyId: string, customerId: string) {
     throw new AppError(
       404,
       "CUSTOMER_NOT_FOUND",
-      "Cliente nao encontrado ou indisponivel.",
+      "Cliente não encontrado ou indisponível.",
     );
 }
 async function assertBranch(companyId: string, branchId?: string | null) {
@@ -78,7 +78,7 @@ async function assertBranch(companyId: string, branchId?: string | null) {
     select: { id: true },
   });
   if (!branch)
-    throw new AppError(404, "BRANCH_NOT_FOUND", "Filial nao encontrada.");
+    throw new AppError(404, "BRANCH_NOT_FOUND", "Filial não encontrada.");
 }
 function handleConflict(error: unknown): never {
   if (
@@ -171,7 +171,7 @@ export async function getVehicle(companyId: string, id: string) {
     select: vehicleSelect,
   });
   if (!vehicle)
-    throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+    throw new AppError(404, "VEHICLE_NOT_FOUND", "Veículo não encontrado.");
   return vehicle;
 }
 export async function createVehicle(
@@ -195,7 +195,7 @@ export async function createVehicle(
           eventType: "VEHICLE_CREATED",
           sourceType: "VEHICLE",
           sourceId: vehicle.id,
-          title: "Veiculo cadastrado",
+          title: "Veículo cadastrado",
           description: `${vehicle.brand} ${vehicle.model}`,
           mileage: vehicle.currentMileage,
           eventDate: new Date(),
@@ -229,7 +229,7 @@ export async function updateVehicle(
     throw new AppError(
       400,
       "VEHICLE_MILEAGE_DECREASE",
-      "A quilometragem atual do veiculo nao pode ser reduzida.",
+      "A quilometragem atual do veículo não pode ser reduzida.",
     );
   }
   const fields = Object.keys(input).filter(
@@ -280,9 +280,9 @@ export async function updateVehicle(
           throw new AppError(
             400,
             "VEHICLE_MILEAGE_DECREASE",
-            "A quilometragem atual do veiculo nao pode ser reduzida.",
+            "A quilometragem atual do veículo não pode ser reduzida.",
           );
-        throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+        throw new AppError(404, "VEHICLE_NOT_FOUND", "Veículo não encontrado.");
       }
       const vehicle = await tx.vehicle.findFirstOrThrow({
         where: { id, companyId: actor.companyId, deletedAt: null },
@@ -303,7 +303,7 @@ export async function updateVehicle(
           title:
             fields.length === 1 && fields[0] === "currentMileage"
               ? "Quilometragem atualizada"
-              : "Dados do veiculo atualizados",
+              : "Dados do veículo atualizados",
           mileage: input.currentMileage,
           eventDate: new Date(),
           metadata: { fields },
@@ -326,7 +326,7 @@ export async function deleteVehicle(actor: VehicleActor, id: string) {
       data: { deletedAt: new Date(), status: "INACTIVE" },
     });
     if (!changed.count)
-      throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+      throw new AppError(404, "VEHICLE_NOT_FOUND", "Veículo não encontrado.");
     await tx.auditLog.create({ data: auditData(actor, "VEHICLE_DELETE", id) });
   });
 }

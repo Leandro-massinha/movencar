@@ -9,8 +9,13 @@ import {
 import type { TenantContext, User } from "../types/auth";
 import { api, setAccessToken } from "../services/api";
 
-type TenantPayload=Omit<TenantContext,"enabledModules">&{enabledModules?:string[]}
-const normalizeTenant=(tenant:TenantPayload):TenantContext=>({...tenant,enabledModules:tenant.enabledModules??[]})
+type TenantPayload = Omit<TenantContext, "enabledModules"> & {
+  enabledModules?: string[];
+};
+const normalizeTenant = (tenant: TenantPayload): TenantContext => ({
+  ...tenant,
+  enabledModules: tenant.enabledModules ?? [],
+});
 
 const demoUser: User = {
   id: "usr-1",
@@ -103,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       if (!email || password.length < 4)
-        throw new Error("Informe e-mail e senha validos.");
+        throw new Error("Informe e-mail e senha válidos.");
       if (useMocks) {
         sessionStorage.setItem("movencar.demo.session", "active");
         setUser({ ...demoUser, email });

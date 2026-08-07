@@ -2,6 +2,10 @@
 
 O MovenCar e um monolito modular com React SPA, API Node/Express e PostgreSQL. `routes` controla acesso, `layouts` compoe a casca autenticada, `components` concentra o design system e `services` isola HTTP. As fronteiras e dependencias completas estao em `PLATFORM_ARCHITECTURE.md` e `DOMAIN_MAP.md`.
 
+## Idioma do produto
+
+A experiência visível adota pt-BR como idioma oficial. Textos e traduções de enums ficam centralizados em `src/i18n/pt-BR.ts`; datas, moeda, números e identificadores brasileiros usam `src/i18n/formatters.ts`. Código interno e contratos da API permanecem em inglês, sem alterar valores persistidos. O glossário normativo está em `docs/PRODUCT_LANGUAGE.md`.
+
 ## Isolamento do produto
 
 MOVENCAR e Painel MEG sao sistemas completamente independentes. Eles nao compartilham codigo, dados, APIs, configuracoes, credenciais, processos ou infraestrutura de aplicacao. Uma indisponibilidade, implantacao ou alteracao no MOVENCAR nao pode afetar o Painel MEG, e vice-versa.

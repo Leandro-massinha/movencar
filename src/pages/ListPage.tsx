@@ -1,4 +1,52 @@
-import { Filter, Plus } from 'lucide-react'
-import { Button, Card, EmptyState, PageHeader, SearchInput } from '../components/ui'
-import { OrderTable } from '../components/OrderTable'
-export function ListPage({title,description,action='Novo cadastro',empty=false}:{title:string;description:string;action?:string;empty?:boolean}){return <div className="space-y-6"><PageHeader title={title} description={description} action={<Button><Plus className="size-4"/>{action}</Button>}/><Card><div className="grid gap-3 border-b p-4 sm:grid-cols-[minmax(220px,1fr)_auto]"><SearchInput placeholder={`Buscar em ${title.toLowerCase()}...`}/><Button variant="secondary"><Filter className="size-4"/>Filtros</Button></div>{empty?<EmptyState title="Nenhum registro encontrado" description="Crie o primeiro registro para iniciar este modulo."/>:<OrderTable/>}</Card></div>}
+import { Filter, Plus } from "lucide-react";
+import {
+  Button,
+  Card,
+  EmptyState,
+  PageHeader,
+  SearchInput,
+} from "../components/ui";
+import { OrderTable } from "../components/OrderTable";
+export function ListPage({
+  title,
+  description,
+  action = "Novo cadastro",
+  empty = false,
+}: {
+  title: string;
+  description: string;
+  action?: string;
+  empty?: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={title}
+        description={description}
+        action={
+          <Button>
+            <Plus className="size-4" />
+            {action}
+          </Button>
+        }
+      />
+      <Card>
+        <div className="grid gap-3 border-b p-4 sm:grid-cols-[minmax(220px,1fr)_auto]">
+          <SearchInput placeholder={`Pesquisar em ${title.toLowerCase()}...`} />
+          <Button variant="secondary">
+            <Filter className="size-4" />
+            Filtros
+          </Button>
+        </div>
+        {empty ? (
+          <EmptyState
+            title="Nenhum registro encontrado"
+            description="Crie o primeiro registro para iniciar este módulo."
+          />
+        ) : (
+          <OrderTable />
+        )}
+      </Card>
+    </div>
+  );
+}

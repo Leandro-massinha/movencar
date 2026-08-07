@@ -2,6 +2,18 @@
 
 Última atualização: 07/08/2026
 
+## Padronização pt-BR
+
+### Auditoria do Pull Request #6
+
+A revisão pré-merge identificou e corrigiu dois riscos de experiência: mensagens técnicas de rede podiam chegar ao login e datas sem horário podiam retroceder um dia por interpretação UTC. O tratamento público de erros agora aceita somente mensagens controladas da API e usa fallback natural em pt-BR; datas civis são formatadas sem deslocamento de fuso. A cobertura foi ampliada para telas principais, histórico, estados vazios, acesso negado, módulo indisponível e erros de API. Não houve alteração em banco, migrations, contratos internos, autenticação, permissões ou isolamento multiempresa.
+
+- pt-BR definido como idioma oficial da experiência, com metadados HTML, navegação, páginas, estados, validações e mensagens da API revisados.
+- Dicionários leves para rótulos de status, combustível, transmissão, histórico e módulos centralizados em `src/i18n/pt-BR.ts`.
+- Formatação de data, data e hora, moeda, números, percentual, quilometragem, CPF/CNPJ, CEP, telefone e placa centralizada em `src/i18n/formatters.ts`.
+- Glossário e regras permanentes documentados em `docs/PRODUCT_LANGUAGE.md` e `AGENTS.md`.
+- Nenhum contrato, enum interno, modelo de dados ou migration foi alterado nesta etapa.
+
 ## Fundação modular da plataforma
 
 ### Atualização e auditoria do Pull Request #5
