@@ -4,9 +4,11 @@ import type { Request } from 'express'
 import { authenticate, requirePermission } from '../auth/auth.middleware.js'
 import { createAddressSchema, createCustomerSchema, customerAddressIdSchema, customerIdSchema, listCustomersSchema, updateAddressSchema, updateCustomerSchema } from './customers.schemas.js'
 import * as service from './customers.service.js'
+import { requireModule } from '../platform/module-gate.js'
 
 export const customersRouter = Router()
 customersRouter.use(authenticate)
+customersRouter.use(requireModule('customers'))
 const actor = (req: Request): service.Actor => ({ companyId: req.auth!.companyId, branchId: req.auth!.branchId, userId: req.auth!.userId, ipAddress: req.ip, userAgent: req.get('user-agent') })
 
 customersRouter.get('/', requirePermission('customers.view'), asyncHandler(async (req, res) => res.json(await service.listCustomers(req.auth!.companyId, listCustomersSchema.parse(req.query)))))

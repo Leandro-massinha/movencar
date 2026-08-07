@@ -18,6 +18,18 @@ enum UserStatus {
   LOCKED
 }
 
+enum ModuleStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CompanyModuleStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  EXPIRED
+}
+
 model Company {
   id                String                @id @default(uuid()) @db.Uuid
   code              String                @unique @db.VarChar(60)
@@ -37,7 +49,39 @@ model Company {
   customers         Customer[]
   customerAddresses CustomerAddress[]
   vehicles          Vehicle[]
+  companyModules    CompanyModule[]
   vehicleHistory    VehicleHistoryEvent[]
+}
+
+model Module {
+  id          String       @id @default(uuid()) @db.Uuid
+  code        String       @unique @db.VarChar(80)
+  name        String       @db.VarChar(120)
+  description String?
+  status      ModuleStatus @default(ACTIVE)
+  isCore      Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  companies CompanyModule[]
+}
+
+model CompanyModule {
+  companyId     String              @db.Uuid
+  moduleId      String              @db.Uuid
+  status        CompanyModuleStatus @default(ACTIVE)
+  activatedAt   DateTime            @default(now())
+  expiresAt     DateTime?
+  configuration Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  module  Module  @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+
+  @@id([companyId, moduleId])
+  @@index([companyId, status])
+  @@index([moduleId, status])
 }
 
 model Branch {

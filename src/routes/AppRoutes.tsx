@@ -12,6 +12,7 @@ import { SessionEndedPage } from "../pages/SessionEndedPage";
 import { CustomersPage } from "../pages/CustomersPage";
 import { VehiclesPage } from "../pages/VehiclesPage";
 import { VehicleHistoryPage } from "../pages/VehicleHistoryPage";
+import { hasModule, moduleForPermission } from "../lib/moduleAccess";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { authenticated, initializing } = useAuth();
   const loc = useLocation();
@@ -41,13 +42,21 @@ export function PermissionRoute({
     <Navigate to="/sem-acesso" replace />
   );
 }
-const Guard = ({
+export const ModulePermissionRoute = ({
   p,
   children,
 }: {
   p: Permission;
   children: React.ReactNode;
-}) => <PermissionRoute permission={p}>{children}</PermissionRoute>;
+}) => {
+  const { tenant } = useAuth();
+  return hasModule(tenant, moduleForPermission(p)) ? (
+    <PermissionRoute permission={p}>{children}</PermissionRoute>
+  ) : (
+    <Navigate to="/sem-acesso" replace />
+  );
+};
+const Guard=ModulePermissionRoute;
 export function AppRoutes() {
   return (
     <Routes>

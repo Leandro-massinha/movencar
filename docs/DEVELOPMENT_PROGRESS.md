@@ -2,6 +2,22 @@
 
 Última atualização: 07/08/2026
 
+## Fundação modular da plataforma
+
+### Atualização e auditoria do Pull Request #5
+
+A branch foi atualizada por merge de `develop` após a entrada do Histórico do Veículo. Conflitos em schema, seed, documentação e autenticação/frontend foram resolvidos preservando as duas linhas. A timeline básica foi vinculada ao entitlement `vehicles`, mantendo permissões `vehicle_history.*`. Foi adicionada a dependência estrutural `vehicles → customers`, aplicada tanto no gate backend quanto na lista de módulos de `/auth/me`. Também foram reforçados fallback do contexto, rota direta, menu, estados inativos e isolamento do backfill. Nenhuma migration aplicada foi editada.
+
+- Arquitetura consolidada como monólito modular, preservando uma API Node.js, uma SPA React e um PostgreSQL.
+- Criados `Module` e `CompanyModule`, com ativação, expiração, configuração e estados que bloqueiam acesso sem apagar dados.
+- Feature gate central no backend usa apenas `req.auth.companyId`; Customers e Vehicles agora exigem módulo ativo antes da permissão por ação.
+- `/auth/me` fornece os módulos habilitados. Menu e guards do frontend exigem módulo e permissão, permanecendo apenas como barreira de UX complementar.
+- Mapa de domínios, dependências, estratégia fiscal, snapshots, providers, arquivos e eventos internos documentados.
+- BusinessType múltiplo, perfis fiscais, catálogo, anexos e outbox/event bus foram deliberadamente mantidos como decisões arquiteturais, sem tabelas prematuras.
+- Migrations `20260807210000_add_platform_modules` e `20260807211000_backfill_platform_modules` criadas com FKs restritivas, índices tenant/status e ativação retrocompatível para empresas existentes.
+
+Arquivos centrais: `backend/src/modules/platform/module-gate.ts`, `docs/PLATFORM_ARCHITECTURE.md`, `docs/MODULE_SYSTEM.md`, `docs/DOMAIN_MAP.md`, `docs/INTERNAL_EVENTS.md` e `docs/FISCAL_ARCHITECTURE.md`.
+
 ## Módulo Histórico do Veículo concluído
 
 ### Auditoria de segurança do Pull Request #4
@@ -19,7 +35,7 @@ Revisão pré-merge concluída em 07/08/2026, sem merge. Foram corrigidos: prote
 
 Arquivos centrais: `backend/src/modules/vehicle-history/*`, `backend/prisma/migrations/20260807190000_add_vehicle_history`, `backend/tests/vehicle-history*`, `src/services/vehicleHistory.ts` e `src/pages/VehicleHistoryPage.tsx`.
 
-Próxima ação: abrir Pull Request de `feature/vehicle-history` para `develop`. Nenhum módulo posterior foi iniciado nesta branch.
+O histórico básico pertence ao domínio comercial `vehicles` e utiliza o mesmo entitlement, mantendo permissões próprias para visualizar e criar eventos manuais. Nenhum módulo comercial separado de histórico foi criado.
 
 ## Módulo Veículos concluído
 

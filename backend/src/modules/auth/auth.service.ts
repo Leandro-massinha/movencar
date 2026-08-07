@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../../lib/prisma.js'
 import { AppError } from '../../lib/errors.js'
 import { hashToken, signAccess, signRefresh, verifyRefresh } from './auth.tokens.js'
+import { listEnabledModules } from '../platform/module-gate.js'
 
 const LOCK_MINUTES = 15
 const MAX_FAILURES = 5
@@ -42,5 +43,6 @@ export async function refresh(rawToken: string) {
 
 export async function currentUser(userId: string, companyId: string) {
   const user = await prisma.user.findFirstOrThrow({ where: { id: userId, companyId, deletedAt: null }, include: { company: true, defaultBranch: true, roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } })
-  return { user: { id: user.id, name: user.name, email: user.email, role: user.roles[0]?.role.name ?? 'Usuario', roles: user.roles.map(({ role }) => role.code), permissions: [...new Set(user.roles.flatMap(({ role }) => role.permissions.map(({ permission }) => permission.code)))] }, tenant: { companyId: user.companyId, companyName: user.company.tradeName, branchId: user.defaultBranchId, branchName: user.defaultBranch.name } }
+  const enabledModules=await listEnabledModules(companyId)
+  return { user: { id: user.id, name: user.name, email: user.email, role: user.roles[0]?.role.name ?? 'Usuario', roles: user.roles.map(({ role }) => role.code), permissions: [...new Set(user.roles.flatMap(({ role }) => role.permissions.map(({ permission }) => permission.code)))] }, tenant: { companyId: user.companyId, companyName: user.company.tradeName, branchId: user.defaultBranchId, branchName: user.defaultBranch.name, enabledModules } }
 }

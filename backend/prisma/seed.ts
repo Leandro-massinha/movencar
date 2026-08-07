@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const permissions = ['dashboard.view','agenda.view','vehicles.view','vehicles.create','vehicles.update','vehicles.delete','vehicle_history.view','vehicle_history.create','orders.view','finance.view','crm.view','yard.view','tools.view','settings.manage','tenant.read','tenant.write','customers.view','customers.create','customers.update','customers.delete']
+const modules=[{code:'core',name:'Nucleo da plataforma',isCore:true},{code:'customers',name:'Clientes',isCore:false},{code:'vehicles',name:'Veiculos',isCore:false},{code:'workshop',name:'Oficina',isCore:false},{code:'finance',name:'Financeiro',isCore:false},{code:'crm',name:'CRM',isCore:false},{code:'yard',name:'Patio',isCore:false},{code:'tools-assets',name:'Ferramentas e ativos',isCore:false}]
 const companies = [
   { code: 'oficina-avenida', legalName: 'Oficina Avenida Ltda', tradeName: 'Oficina Avenida', document: '11111111000191', users: [{ name: 'Marina Costa', email: 'marina@movencar.demo', role: 'ADMIN' }, { name: 'Carlos Gestor', email: 'carlos@movencar.demo', role: 'MANAGER' }] },
   { code: 'auto-center-norte', legalName: 'Auto Center Norte Ltda', tradeName: 'Auto Center Norte', document: '22222222000191', users: [{ name: 'Ana Souza', email: 'ana@autonorte.demo', role: 'ADMIN' }, { name: 'Paulo Tecnico', email: 'paulo@autonorte.demo', role: 'TECHNICIAN' }] }
@@ -10,9 +11,12 @@ const companies = [
 
 async function main() {
   for (const code of permissions) await prisma.permission.upsert({ where: { code }, update: {}, create: { code, description: code } })
+  for(const input of modules)await prisma.module.upsert({where:{code:input.code},update:{name:input.name,isCore:input.isCore,status:'ACTIVE'},create:{...input,status:'ACTIVE'}})
   const passwordHash = await bcrypt.hash('MovenCar@2026', 12)
   for (const companyInput of companies) {
     const company = await prisma.company.upsert({ where: { code: companyInput.code }, update: { tradeName: companyInput.tradeName }, create: { code: companyInput.code, legalName: companyInput.legalName, tradeName: companyInput.tradeName, document: companyInput.document } })
+    const enabledModules=await prisma.module.findMany({where:{code:{in:modules.map(({code})=>code)}}})
+    for(const module of enabledModules)await prisma.companyModule.upsert({where:{companyId_moduleId:{companyId:company.id,moduleId:module.id}},update:{status:'ACTIVE'},create:{companyId:company.id,moduleId:module.id,status:'ACTIVE'}})
     const matrix = await prisma.branch.upsert({ where: { companyId_code: { companyId: company.id, code: 'MATRIZ' } }, update: {}, create: { companyId: company.id, code: 'MATRIZ', name: 'Matriz - Centro' } })
     await prisma.branch.upsert({ where: { companyId_code: { companyId: company.id, code: 'NORTE' } }, update: {}, create: { companyId: company.id, code: 'NORTE', name: 'Unidade Norte' } })
     for (const roleInput of [{ code: 'ADMIN', name: 'Administrador' }, { code: 'MANAGER', name: 'Gestor' }, { code: 'TECHNICIAN', name: 'Tecnico' }]) {

@@ -29,4 +29,5 @@ export interface TenantContext {
   companyName: string;
   branchId: string;
   branchName: string;
+  enabledModules: string[];
 }

@@ -9,6 +9,9 @@ import {
 import type { TenantContext, User } from "../types/auth";
 import { api, setAccessToken } from "../services/api";
 
+type TenantPayload=Omit<TenantContext,"enabledModules">&{enabledModules?:string[]}
+const normalizeTenant=(tenant:TenantPayload):TenantContext=>({...tenant,enabledModules:tenant.enabledModules??[]})
+
 const demoUser: User = {
   id: "usr-1",
   name: "Marina Costa",
@@ -40,6 +43,16 @@ const demoTenant: TenantContext = {
   companyName: "Oficina Avenida",
   branchId: "matriz",
   branchName: "Matriz - Centro",
+  enabledModules: [
+    "core",
+    "customers",
+    "vehicles",
+    "workshop",
+    "finance",
+    "crm",
+    "yard",
+    "tools-assets",
+  ],
 };
 interface AuthValue {
   user: User | null;
@@ -78,11 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .post<{ accessToken: string }>("/auth/refresh")
       .then(({ data }) => {
         setAccessToken(data.accessToken);
-        return api.get<{ user: User; tenant: TenantContext }>("/auth/me");
+        return api.get<{ user: User; tenant: TenantPayload }>("/auth/me");
       })
       .then(({ data }) => {
         setUser(data.user);
-        setTenant(data.tenant);
+        setTenant(normalizeTenant(data.tenant));
       })
       .catch(() => setUser(null))
       .finally(() => setInitializing(false));
@@ -104,11 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
       setAccessToken(data.accessToken);
-      const me = await api.get<{ user: User; tenant: TenantContext }>(
+      const me = await api.get<{ user: User; tenant: TenantPayload }>(
         "/auth/me",
       );
       setUser(me.data.user);
-      setTenant(me.data.tenant);
+      setTenant(normalizeTenant(me.data.tenant));
     },
     [useMocks],
   );
