@@ -1,11 +1,167 @@
-import { api } from './api'
-export type VehicleStatus='ACTIVE'|'INACTIVE'|'BLOCKED';export type FuelType='GASOLINE'|'ETHANOL'|'FLEX'|'DIESEL'|'ELECTRIC'|'HYBRID'|'GNV'|'OTHER'
-export interface Vehicle{id:string;customerId:string;originBranchId:string|null;status:VehicleStatus;plate:string|null;brand:string;model:string;version:string|null;yearManufacture:number|null;yearModel:number|null;color:string|null;fuelType:FuelType|null;currentMileage:number|null;createdAt:string;customer:{id:string;name:string;document:string|null;phone:string|null};originBranch:{id:string;code:string;name:string}|null}
-export interface VehicleInput{customerId:string;plate?:string;brand:string;model:string;version?:string;yearManufacture?:number;yearModel?:number;color?:string;fuelType?:FuelType;currentMileage?:number}
-export interface VehicleList{data:Vehicle[];pagination:{page:number;limit:number;total:number;totalPages:number}}
-const useMocks=import.meta.env.VITE_USE_MOCKS!=='false';let mockVehicles:Vehicle[]=[{id:'demo-vehicle-1',customerId:'demo-customer-1',originBranchId:null,status:'ACTIVE',plate:'ABC1D23',brand:'Chevrolet',model:'Onix',version:'LT',yearManufacture:2022,yearModel:2023,color:'Prata',fuelType:'FLEX',currentMileage:42800,createdAt:new Date().toISOString(),customer:{id:'demo-customer-1',name:'Juliana Alves',document:'12345678901',phone:'11999990000'},originBranch:null}]
-export const vehiclesApi={
-list:async(params:{page:number;limit:number;search?:string;status?:VehicleStatus;fuelType?:FuelType})=>{if(!useMocks)return api.get<VehicleList>('/vehicles',{params}).then(({data})=>data);const search=(params.search||'').toLowerCase().replace(/[^a-z0-9]/g,'');const rows=mockVehicles.filter(vehicle=>(!params.status||vehicle.status===params.status)&&(!params.fuelType||vehicle.fuelType===params.fuelType)&&(!search||`${vehicle.plate||''}${vehicle.brand}${vehicle.model}${vehicle.customer.name}`.toLowerCase().replace(/[^a-z0-9]/g,'').includes(search)));return{data:rows.slice((params.page-1)*params.limit,params.page*params.limit),pagination:{page:params.page,limit:params.limit,total:rows.length,totalPages:Math.ceil(rows.length/params.limit)}}},
-get:async(id:string)=>{if(!useMocks)return api.get<{vehicle:Vehicle}>(`/vehicles/${id}`).then(({data})=>data.vehicle);const vehicle=mockVehicles.find(item=>item.id===id);if(!vehicle)throw new Error('Veiculo nao encontrado.');return vehicle},
-create:async(input:VehicleInput)=>{if(!useMocks)return api.post<{vehicle:Vehicle}>('/vehicles',input).then(({data})=>data.vehicle);const vehicle:Vehicle={id:crypto.randomUUID(),customerId:input.customerId,originBranchId:null,status:'ACTIVE',plate:input.plate?.toUpperCase().replace(/[^A-Z0-9]/g,'')||null,brand:input.brand.trim(),model:input.model.trim(),version:input.version||null,yearManufacture:input.yearManufacture||null,yearModel:input.yearModel||null,color:input.color||null,fuelType:input.fuelType||null,currentMileage:input.currentMileage??null,createdAt:new Date().toISOString(),customer:{id:input.customerId,name:'Cliente selecionado',document:null,phone:null},originBranch:null};mockVehicles=[vehicle,...mockVehicles];return vehicle},
-remove:async(id:string)=>{if(!useMocks){await api.delete(`/vehicles/${id}`);return}mockVehicles=mockVehicles.filter(vehicle=>vehicle.id!==id)}}
+import { api } from "./api";
+export type VehicleStatus = "ACTIVE" | "INACTIVE" | "BLOCKED";
+export type FuelType =
+  | "GASOLINE"
+  | "ETHANOL"
+  | "FLEX"
+  | "DIESEL"
+  | "ELECTRIC"
+  | "HYBRID"
+  | "GNV"
+  | "OTHER";
+export interface Vehicle {
+  id: string;
+  customerId: string;
+  originBranchId: string | null;
+  status: VehicleStatus;
+  plate: string | null;
+  brand: string;
+  model: string;
+  version: string | null;
+  yearManufacture: number | null;
+  yearModel: number | null;
+  color: string | null;
+  fuelType: FuelType | null;
+  currentMileage: number | null;
+  createdAt: string;
+  customer: {
+    id: string;
+    name: string;
+    document: string | null;
+    phone: string | null;
+  };
+  originBranch: { id: string; code: string; name: string } | null;
+}
+export interface VehicleInput {
+  customerId: string;
+  plate?: string;
+  brand: string;
+  model: string;
+  version?: string;
+  yearManufacture?: number;
+  yearModel?: number;
+  color?: string;
+  fuelType?: FuelType;
+  currentMileage?: number;
+}
+export interface VehicleList {
+  data: Vehicle[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+const useMocks = import.meta.env.VITE_USE_MOCKS !== "false";
+let mockVehicles: Vehicle[] = [
+  {
+    id: "demo-vehicle-1",
+    customerId: "demo-customer-1",
+    originBranchId: null,
+    status: "ACTIVE",
+    plate: "ABC1D23",
+    brand: "Chevrolet",
+    model: "Onix",
+    version: "LT",
+    yearManufacture: 2022,
+    yearModel: 2023,
+    color: "Prata",
+    fuelType: "FLEX",
+    currentMileage: 42800,
+    createdAt: new Date().toISOString(),
+    customer: {
+      id: "demo-customer-1",
+      name: "Juliana Alves",
+      document: "12345678901",
+      phone: "11999990000",
+    },
+    originBranch: null,
+  },
+];
+export const vehiclesApi = {
+  list: async (params: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: VehicleStatus;
+    fuelType?: FuelType;
+  }) => {
+    if (!useMocks)
+      return api
+        .get<VehicleList>("/vehicles", { params })
+        .then(({ data }) => data);
+    const search = (params.search || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const rows = mockVehicles.filter(
+      (vehicle) =>
+        (!params.status || vehicle.status === params.status) &&
+        (!params.fuelType || vehicle.fuelType === params.fuelType) &&
+        (!search ||
+          `${vehicle.plate || ""}${vehicle.brand}${vehicle.model}${vehicle.customer.name}`
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "")
+            .includes(search)),
+    );
+    return {
+      data: rows.slice(
+        (params.page - 1) * params.limit,
+        params.page * params.limit,
+      ),
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        total: rows.length,
+        totalPages: Math.ceil(rows.length / params.limit),
+      },
+    };
+  },
+  get: async (id: string) => {
+    if (!useMocks)
+      return api
+        .get<{ vehicle: Vehicle }>(`/vehicles/${id}`)
+        .then(({ data }) => data.vehicle);
+    const vehicle = mockVehicles.find((item) => item.id === id);
+    if (!vehicle) throw new Error("Veículo não encontrado.");
+    return vehicle;
+  },
+  create: async (input: VehicleInput) => {
+    if (!useMocks)
+      return api
+        .post<{ vehicle: Vehicle }>("/vehicles", input)
+        .then(({ data }) => data.vehicle);
+    const vehicle: Vehicle = {
+      id: crypto.randomUUID(),
+      customerId: input.customerId,
+      originBranchId: null,
+      status: "ACTIVE",
+      plate: input.plate?.toUpperCase().replace(/[^A-Z0-9]/g, "") || null,
+      brand: input.brand.trim(),
+      model: input.model.trim(),
+      version: input.version || null,
+      yearManufacture: input.yearManufacture || null,
+      yearModel: input.yearModel || null,
+      color: input.color || null,
+      fuelType: input.fuelType || null,
+      currentMileage: input.currentMileage ?? null,
+      createdAt: new Date().toISOString(),
+      customer: {
+        id: input.customerId,
+        name: "Cliente selecionado",
+        document: null,
+        phone: null,
+      },
+      originBranch: null,
+    };
+    mockVehicles = [vehicle, ...mockVehicles];
+    return vehicle;
+  },
+  remove: async (id: string) => {
+    if (!useMocks) {
+      await api.delete(`/vehicles/${id}`);
+      return;
+    }
+    mockVehicles = mockVehicles.filter((vehicle) => vehicle.id !== id);
+  },
+};

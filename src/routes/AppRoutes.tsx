@@ -19,7 +19,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (initializing)
     return (
       <div className="grid min-h-screen place-items-center bg-canvas text-sm text-slate-500">
-        Carregando sessao...
+        Carregando sessão...
       </div>
     );
   return authenticated ? (
@@ -56,7 +56,7 @@ export const ModulePermissionRoute = ({
     <Navigate to="/sem-acesso" replace />
   );
 };
-const Guard=ModulePermissionRoute;
+const Guard = ModulePermissionRoute;
 export function AppRoutes() {
   return (
     <Routes>
@@ -106,8 +106,8 @@ export function AppRoutes() {
           element={
             <Guard p="orders.view">
               <ListPage
-                title="Ordens de servico"
-                description="Do orcamento a entrega do veiculo"
+                title="Ordens de Serviço"
+                description="Do orçamento à entrega do veículo"
                 action="Nova ordem"
               />
             </Guard>
@@ -135,8 +135,8 @@ export function AppRoutes() {
           element={
             <Guard p="yard.view">
               <ListPage
-                title="Patio"
-                description="Localizacao e situacao de cada veiculo"
+                title="Pátio"
+                description="Localização e situação de cada veículo"
                 action="Registrar entrada"
               />
             </Guard>
@@ -148,7 +148,7 @@ export function AppRoutes() {
             <Guard p="tools.view">
               <ListPage
                 title="Ferramentas"
-                description="Emprestimos, manutencoes e inventario"
+                description="Empréstimos, manutenções e inventário"
                 action="Nova ferramenta"
               />
             </Guard>
@@ -159,8 +159,8 @@ export function AppRoutes() {
           element={
             <Guard p="finance.view">
               <ListPage
-                title="Centros de custo"
-                description="Distribuicao gerencial de despesas e receitas"
+                title="Centros de Custos"
+                description="Distribuição gerencial de despesas e receitas"
                 action="Novo centro"
               />
             </Guard>
@@ -171,8 +171,8 @@ export function AppRoutes() {
           element={
             <Guard p="crm.view">
               <ListPage
-                title="Avaliacoes"
-                description="Satisfacao, reputacao e planos de recuperacao"
+                title="Avaliações"
+                description="Satisfação, reputação e planos de recuperação"
                 empty
               />
             </Guard>
@@ -183,8 +183,8 @@ export function AppRoutes() {
           element={
             <Guard p="orders.view">
               <ListPage
-                title="Modelos de checklist"
-                description="Padronize inspecoes e entregas"
+                title="Modelos de Lista de Verificação"
+                description="Padronize inspeções e entregas"
                 action="Novo modelo"
               />
             </Guard>
@@ -195,9 +195,9 @@ export function AppRoutes() {
           element={
             <Guard p="settings.manage">
               <ListPage
-                title="Configuracoes"
-                description="Empresa, filiais, usuarios e integracoes"
-                action="Convidar usuario"
+                title="Configurações"
+                description="Empresa, filiais, usuários e integrações"
+                action="Convidar usuário"
               />
             </Guard>
           }
@@ -206,8 +206,8 @@ export function AppRoutes() {
           path="sem-acesso"
           element={
             <ListPage
-              title="Acesso restrito"
-              description="Seu perfil nao possui permissao para este modulo"
+              title="Acesso negado"
+              description="Você não possui permissão ou o módulo não está disponível para esta empresa."
               empty
             />
           }

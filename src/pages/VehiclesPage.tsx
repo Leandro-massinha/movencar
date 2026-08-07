@@ -23,11 +23,8 @@ import {
 import { customersApi } from "../services/customers";
 import { useAuth } from "../hooks/useAuth";
 import { hasPermission } from "../lib/permissions";
-const labels: Record<VehicleStatus, string> = {
-  ACTIVE: "Ativo",
-  INACTIVE: "Inativo",
-  BLOCKED: "Bloqueado",
-};
+import { fuelTypeLabels, statusLabels } from "../i18n/pt-BR";
+import { formatMileage, formatPlate } from "../i18n/formatters";
 const empty: VehicleInput = {
   customerId: "",
   plate: "",
@@ -71,7 +68,9 @@ export function VehiclesPage() {
       setForm(empty);
     },
     onError: () =>
-      setError("Nao foi possivel cadastrar o veiculo. Verifique os dados."),
+      setError(
+        "Não foi possível cadastrar o veículo. Verifique os dados informados.",
+      ),
   });
   const remove = useMutation({
     mutationFn: vehiclesApi.remove,
@@ -85,13 +84,13 @@ export function VehiclesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Veiculos"
-        description="Cadastro da frota atendida pela oficina"
+        title="Veículos"
+        description="Cadastro de veículos da empresa"
         action={
           hasPermission(user, "vehicles.create") ? (
             <Button onClick={() => setOpen(true)}>
               <Plus className="size-4" />
-              Novo veiculo
+              Novo veículo
             </Button>
           ) : undefined
         }
@@ -104,7 +103,8 @@ export function VehiclesPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            placeholder="Buscar placa, veiculo ou cliente..."
+            aria-label="Pesquisar veículos"
+            placeholder="Pesquisar por placa, veículo ou cliente..."
           />
           <Select
             aria-label="Filtrar por status"
@@ -120,7 +120,7 @@ export function VehiclesPage() {
             <option value="BLOCKED">Bloqueados</option>
           </Select>
           <Select
-            aria-label="Filtrar por combustivel"
+            aria-label="Filtrar por combustível"
             value={fuel}
             onChange={(e) => {
               setFuel(e.target.value as FuelType | "");
@@ -128,29 +128,26 @@ export function VehiclesPage() {
             }}
           >
             <option value="">Todos combustiveis</option>
-            <option value="FLEX">Flex</option>
-            <option value="GASOLINE">Gasolina</option>
-            <option value="ETHANOL">Etanol</option>
-            <option value="DIESEL">Diesel</option>
-            <option value="ELECTRIC">Eletrico</option>
-            <option value="HYBRID">Hibrido</option>
-            <option value="GNV">GNV</option>
-            <option value="OTHER">Outro</option>
+            {Object.entries(fuelTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </Select>
         </div>
         {query.isLoading ? (
           <div className="p-8 text-center text-sm text-slate-500">
-            Carregando veiculos...
+            Carregando veículos...
           </div>
         ) : query.isError ? (
           <EmptyState
-            title="Nao foi possivel carregar os veiculos"
-            description="Tente novamente em instantes."
+            title="Não foi possível carregar os veículos."
+            description="Tente novamente em alguns instantes."
           />
         ) : !query.data?.data.length ? (
           <EmptyState
-            title="Nenhum veiculo encontrado"
-            description="Ajuste os filtros ou crie o primeiro cadastro."
+            title="Nenhum veículo encontrado."
+            description="Não encontramos resultados para os filtros informados."
           />
         ) : (
           <>
@@ -159,27 +156,27 @@ export function VehiclesPage() {
                 <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                   <tr>
                     <th className="px-4 py-3">Placa</th>
-                    <th className="px-4 py-3">Veiculo</th>
+                    <th className="px-4 py-3">Veículo</th>
                     <th className="px-4 py-3">Cliente</th>
                     <th className="px-4 py-3">Ano</th>
                     <th className="px-4 py-3">Quilometragem</th>
                     <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Filial</th>
-                    <th className="px-4 py-3 text-right">Acoes</th>
+                    <th className="px-4 py-3">Filial de origem</th>
+                    <th className="px-4 py-3 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {query.data.data.map((vehicle) => (
                     <tr key={vehicle.id} className="h-16">
                       <td className="px-4 font-bold text-ink">
-                        {vehicle.plate || "Sem placa"}
+                        {formatPlate(vehicle.plate)}
                       </td>
                       <td className="px-4">
                         <p className="font-semibold">
                           {vehicle.brand} {vehicle.model}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {vehicle.version || vehicle.color || "Sem versao"}
+                          {vehicle.version || vehicle.color || "Sem versão"}
                         </p>
                       </td>
                       <td className="px-4">{vehicle.customer.name}</td>
@@ -191,7 +188,7 @@ export function VehiclesPage() {
                       <td className="px-4">
                         {vehicle.currentMileage == null
                           ? "—"
-                          : `${vehicle.currentMileage.toLocaleString("pt-BR")} km`}
+                          : formatMileage(vehicle.currentMileage)}
                       </td>
                       <td className="px-4">
                         <Badge
@@ -203,37 +200,37 @@ export function VehiclesPage() {
                                 : "neutral"
                           }
                         >
-                          {labels[vehicle.status]}
+                          {statusLabels[vehicle.status]}
                         </Badge>
                       </td>
                       <td className="px-4">
-                        {vehicle.originBranch?.name || "Todas"}
+                        {vehicle.originBranch?.name || "Todas as filiais"}
                       </td>
                       <td className="px-4 text-right">
                         <span className="inline-flex gap-2">
                           <IconButton
-                            label={`Historico de ${vehicle.brand} ${vehicle.model}`}
+                            label={`Histórico de ${vehicle.brand} ${vehicle.model}`}
                             onClick={() =>
                               navigate(`/veiculos/${vehicle.id}/historico`)
                             }
                           >
                             <History className="size-4" />
                           </IconButton>
-                        {hasPermission(user, "vehicles.delete") && (
-                          <IconButton
-                            label={`Excluir ${vehicle.brand} ${vehicle.model}`}
-                            onClick={() => {
-                              if (
-                                window.confirm(
-                                  `Excluir o veiculo ${vehicle.plate || vehicle.model}?`,
+                          {hasPermission(user, "vehicles.delete") && (
+                            <IconButton
+                              label={`Excluir ${vehicle.brand} ${vehicle.model}`}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `Excluir veículo ${vehicle.plate || vehicle.model}? O histórico será preservado.`,
+                                  )
                                 )
-                              )
-                                remove.mutate(vehicle.id);
-                            }}
-                          >
-                            <Trash2 className="size-4" />
-                          </IconButton>
-                        )}
+                                  remove.mutate(vehicle.id);
+                              }}
+                            >
+                              <Trash2 className="size-4" />
+                            </IconButton>
+                          )}
                         </span>
                       </td>
                     </tr>
@@ -256,14 +253,14 @@ export function VehiclesPage() {
                   disabled={page >= query.data.pagination.totalPages}
                   onClick={() => setPage((v) => v + 1)}
                 >
-                  Proxima
+                  Próxima
                 </Button>
               </div>
             </div>
           </>
         )}
       </Card>
-      <Modal open={open} title="Novo veiculo" onClose={() => setOpen(false)}>
+      <Modal open={open} title="Novo veículo" onClose={() => setOpen(false)}>
         <form className="space-y-4" onSubmit={submit}>
           <div>
             <label
@@ -393,7 +390,7 @@ export function VehiclesPage() {
               Cancelar
             </Button>
             <Button type="submit" disabled={create.isPending}>
-              {create.isPending ? "Salvando..." : "Salvar veiculo"}
+              {create.isPending ? "Salvando..." : "Salvar veículo"}
             </Button>
           </div>
         </form>
