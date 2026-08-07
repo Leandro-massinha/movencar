@@ -11,6 +11,7 @@ import {
   Select,
   Textarea,
 } from "../components/ui";
+import { VehicleDamageMap } from "../components/VehicleDamageMap";
 import { useAuth } from "../hooks/useAuth";
 import { hasPermission } from "../lib/permissions";
 import { getApiStatus, getPublicErrorMessage } from "../services/api";
@@ -27,17 +28,6 @@ const statusLabels: Record<ObservationStatus, string> = {
   NOT_CHECKED: "Não verificado",
   NOT_APPLICABLE: "Não aplicável",
 };
-const mapAreas: Array<[DamageLocation, string]> = [
-  ["FRONT_BUMPER", "Frente"],
-  ["HOOD", "Capô"],
-  ["ROOF", "Teto"],
-  ["FRONT_LEFT_DOOR", "Porta diant. esq."],
-  ["FRONT_RIGHT_DOOR", "Porta diant. dir."],
-  ["REAR_LEFT_DOOR", "Porta tras. esq."],
-  ["REAR_RIGHT_DOOR", "Porta tras. dir."],
-  ["TRUNK_LID", "Tampa traseira"],
-  ["REAR_BUMPER", "Traseira"],
-];
 const locationLabels: Record<DamageLocation, string> = {
   FRONT_BUMPER: "Para-choque dianteiro",
   REAR_BUMPER: "Para-choque traseiro",
@@ -89,21 +79,17 @@ export function CheckInPage() {
   const [data, setData] = useState<CheckInWorkspace | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [damageLocation, setDamageLocation] = useState<DamageLocation | null>(
-    null,
-  );
+  const [damageLocation, setDamageLocation] = useState<DamageLocation | null>(null);
   const [damageType, setDamageType] = useState("SCRATCH");
   const [severity, setSeverity] = useState("MINOR");
   const [description, setDescription] = useState("");
+
   const load = useCallback(async () => {
     try {
       setData(await workshopApi.getCheckIn(id));
       setError("");
     } catch (cause) {
-      if (
-        getApiStatus(cause) === 404 &&
-        hasPermission(user, "checkins.create")
-      ) {
+      if (getApiStatus(cause) === 404 && hasPermission(user, "checkins.create")) {
         try {
           await workshopApi.createCheckIn(id);
           setData(await workshopApi.getCheckIn(id));
@@ -111,22 +97,19 @@ export function CheckInPage() {
           return;
         } catch (createCause) {
           setError(
-            getPublicErrorMessage(
-              createCause,
-              "Não foi possível iniciar o Check-in.",
-            ),
+            getPublicErrorMessage(createCause, "Não foi possível iniciar o Check-in."),
           );
           return;
         }
       }
-      setError(
-        getPublicErrorMessage(cause, "Não foi possível carregar o Check-in."),
-      );
+      setError(getPublicErrorMessage(cause, "Não foi possível carregar o Check-in."));
     }
   }, [id, user]);
+
   useEffect(() => {
     void load();
   }, [load]);
+
   const items = useMemo(
     () =>
       data?.checkIn.checklistInstance.template.sections.flatMap(
@@ -137,6 +120,7 @@ export function CheckInPage() {
   const answered = data?.checkIn.checklistInstance.results.length ?? 0;
   const readonly = data?.checkIn.status !== "DRAFT";
   const canUpdate = hasPermission(user, "checkins.update") && !readonly;
+
   const setStatus = async (itemId: string, status: ObservationStatus) => {
     if (!canUpdate) return;
     setSaving(true);
@@ -149,6 +133,7 @@ export function CheckInPage() {
       setSaving(false);
     }
   };
+
   const saveResult = async (
     itemId: string,
     input: Parameters<typeof workshopApi.saveResult>[2],
@@ -164,6 +149,7 @@ export function CheckInPage() {
       setSaving(false);
     }
   };
+
   const saveDraft = async () => {
     if (!data) return;
     setSaving(true);
@@ -180,6 +166,7 @@ export function CheckInPage() {
       setSaving(false);
     }
   };
+
   const addDamage = async () => {
     if (!damageLocation) return;
     setSaving(true);
@@ -199,6 +186,7 @@ export function CheckInPage() {
       setSaving(false);
     }
   };
+
   const complete = async () => {
     setSaving(true);
     try {
@@ -210,12 +198,12 @@ export function CheckInPage() {
       setSaving(false);
     }
   };
-  if (!data)
-    return <Card className="p-6">{error || "Carregando Check-in..."}</Card>;
+
+  if (!data) return <Card className="p-6">{error || "Carregando Check-in..."}</Card>;
+
   const resultFor = (itemId: string) =>
-    data.checkIn.checklistInstance.results.find(
-      (result) => result.itemId === itemId,
-    );
+    data.checkIn.checklistInstance.results.find((result) => result.itemId === itemId);
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -227,6 +215,7 @@ export function CheckInPage() {
           </Link>
         }
       />
+
       {error && (
         <div
           role="alert"
@@ -235,6 +224,7 @@ export function CheckInPage() {
           {error}
         </div>
       )}
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="p-4">
           <div className="flex items-center gap-2 text-sm font-semibold">
@@ -249,14 +239,13 @@ export function CheckInPage() {
                 ...data,
                 checkIn: {
                   ...data.checkIn,
-                  mileage: event.target.value
-                    ? Number(event.target.value)
-                    : null,
+                  mileage: event.target.value ? Number(event.target.value) : null,
                 },
               })
             }
           />
         </Card>
+
         <Card className="p-4">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Car className="size-4" /> Combustível
@@ -282,6 +271,7 @@ export function CheckInPage() {
             ))}
           </Select>
         </Card>
+
         <Card className="p-4">
           <div className="flex justify-between">
             <span className="text-sm font-semibold">Progresso</span>
@@ -302,41 +292,33 @@ export function CheckInPage() {
           </p>
         </Card>
       </div>
+
       <Card className="p-5">
         <h2 className="flex items-center gap-2 font-bold">
           <MapPin className="size-5" /> Mapa de avarias
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Selecione uma área do veículo para registrar a condição observada na
-          entrada.
+          Toque diretamente na região do veículo para registrar uma avaria. Áreas com
+          ocorrências ficam destacadas e exibem a quantidade registrada.
         </p>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {mapAreas.map(([location, label]) => (
-            <Button
-              key={location}
-              variant="secondary"
-              disabled={!canUpdate}
-              onClick={() => setDamageLocation(location)}
-              className="h-auto min-h-12 whitespace-normal"
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+        <VehicleDamageMap
+          damages={data.checkIn.damages}
+          disabled={!canUpdate}
+          locationLabels={locationLabels}
+          onSelect={setDamageLocation}
+        />
         {data.checkIn.damages.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-5 space-y-2">
+            <h3 className="text-sm font-bold text-slate-800">Avarias registradas</h3>
             {data.checkIn.damages.map((damage) => (
               <div
                 key={damage.id}
                 className="flex items-center justify-between rounded-md border p-3 text-sm"
               >
                 <span>
-                  {locationLabels[damage.location]} ·{" "}
-                  {damageTypeLabels[damage.damageType] ?? "Outro"}
+                  {locationLabels[damage.location]} · {damageTypeLabels[damage.damageType] ?? "Outro"}
                 </span>
-                <Badge
-                  tone={damage.severity === "SEVERE" ? "danger" : "warning"}
-                >
+                <Badge tone={damage.severity === "SEVERE" ? "danger" : "warning"}>
                   {damage.severity === "MINOR"
                     ? "Leve"
                     : damage.severity === "MODERATE"
@@ -348,6 +330,7 @@ export function CheckInPage() {
           </div>
         )}
       </Card>
+
       {data.checkIn.checklistInstance.template.sections.map((section) => (
         <Card key={section.id} className="overflow-hidden">
           <details open>
@@ -363,38 +346,31 @@ export function CheckInPage() {
                       <div>
                         <p className="font-medium text-slate-800">
                           {item.title}
-                          {item.isRequired && (
-                            <span className="text-red-600"> *</span>
-                          )}
+                          {item.isRequired && <span className="text-red-600"> *</span>}
                         </p>
                         {result?.note && (
-                          <p className="text-xs text-slate-500">
-                            {result.note}
-                          </p>
+                          <p className="text-xs text-slate-500">{result.note}</p>
                         )}
                       </div>
+
                       {item.responseType === "STATUS" ? (
                         <div className="w-full space-y-2 lg:max-w-2xl">
                           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            {(
-                              Object.keys(statusLabels) as ObservationStatus[]
-                            ).map((status) => (
-                              <Button
-                                key={status}
-                                disabled={!canUpdate || saving}
-                                variant={
-                                  result?.status === status
-                                    ? "primary"
-                                    : "secondary"
-                                }
-                                onClick={() => setStatus(item.id, status)}
-                              >
-                                {status === "ISSUE" && (
-                                  <AlertTriangle className="size-4" />
-                                )}
-                                {statusLabels[status]}
-                              </Button>
-                            ))}
+                            {(Object.keys(statusLabels) as ObservationStatus[]).map(
+                              (status) => (
+                                <Button
+                                  key={status}
+                                  disabled={!canUpdate || saving}
+                                  variant={result?.status === status ? "primary" : "secondary"}
+                                  onClick={() => setStatus(item.id, status)}
+                                >
+                                  {status === "ISSUE" && (
+                                    <AlertTriangle className="size-4" />
+                                  )}
+                                  {statusLabels[status]}
+                                </Button>
+                              ),
+                            )}
                           </div>
                           {result?.status === "ISSUE" && (
                             <Textarea
@@ -469,6 +445,7 @@ export function CheckInPage() {
           </details>
         </Card>
       ))}
+
       <Card className="p-5">
         <label className="text-sm font-semibold">Observações gerais</label>
         <Textarea
@@ -482,6 +459,7 @@ export function CheckInPage() {
           }
         />
       </Card>
+
       <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t bg-canvas/95 py-3">
         <Button
           variant="secondary"
@@ -491,15 +469,14 @@ export function CheckInPage() {
           Salvar rascunho
         </Button>
         <Button
-          disabled={
-            readonly || saving || !hasPermission(user, "checkins.complete")
-          }
+          disabled={readonly || saving || !hasPermission(user, "checkins.complete")}
           onClick={complete}
         >
           <CheckCircle2 className="size-4" />
           Concluir Check-in
         </Button>
       </div>
+
       <Modal
         open={damageLocation !== null}
         title="Registrar avaria"
@@ -521,6 +498,7 @@ export function CheckInPage() {
               ))}
             </Select>
           </label>
+
           <label className="block text-sm font-semibold">
             Tipo de avaria
             <Select
@@ -546,6 +524,7 @@ export function CheckInPage() {
               ))}
             </Select>
           </label>
+
           <label className="block text-sm font-semibold">
             Severidade
             <Select
@@ -557,6 +536,7 @@ export function CheckInPage() {
               <option value="SEVERE">Grave</option>
             </Select>
           </label>
+
           <label className="block text-sm font-semibold">
             Observação
             <Textarea
@@ -564,6 +544,7 @@ export function CheckInPage() {
               onChange={(event) => setDescription(event.target.value)}
             />
           </label>
+
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setDamageLocation(null)}>
               Cancelar
