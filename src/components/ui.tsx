@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
+  useId,
 } from "react";
 import { cn } from "../lib/cn";
 
@@ -231,16 +232,20 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
 }) {
+  const titleId = useId();
   if (!open) return null;
   return (
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 p-4"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
     >
       <Card className="w-full max-w-lg">
         <header className="flex items-center justify-between border-b p-4">
-          <h2 className="font-bold">{title}</h2>
+          <h2 id={titleId} className="font-bold">
+            {title}
+          </h2>
           <IconButton label="Fechar" onClick={onClose}>
             <X className="size-4" />
           </IconButton>

@@ -24,7 +24,11 @@ export type Permission =
   | "checkins.view"
   | "checkins.create"
   | "checkins.update"
-  | "checkins.complete";
+  | "checkins.complete"
+  | "pdc.view"
+  | "pdc.create"
+  | "pdc.update"
+  | "pdc.complete";
 export interface User {
   id: string;
   name: string;

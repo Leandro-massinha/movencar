@@ -28,7 +28,7 @@
 
 Dependências inversas e circulares são proibidas. Integrações transversais devem usar interfaces ou eventos. Files é uma capacidade Core, não uma tabela de foto por módulo.
 
-Workshop será dono de ServiceVisit, CustomerConcern, Check-in, checklist, observações e diagnóstico. Customer e Vehicle não importam Workshop; suas visões 360° consultam projeções/fachadas de leitura.
+Workshop é dono de CustomerConcern, Check-in, checklist, avarias e PDC. ServiceVisit, teste de rodagem e diagnóstico definitivo permanecem futuros. Customer e Vehicle não importam Workshop; suas visões 360° consultam projeções/fachadas de leitura.
 
 WorkOrder é a raiz operacional implementada para entrada física. ServiceVisit futuro representa interação mais ampla e será opcional para OS, evitando duas entidades com a mesma responsabilidade.
 

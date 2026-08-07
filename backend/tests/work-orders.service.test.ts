@@ -21,6 +21,27 @@ const db = vi.hoisted(() => ({
     create: vi.fn(),
     updateMany: vi.fn(),
   },
+  checklistTemplate: { findFirst: vi.fn() },
+  checklistInstance: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  checklistTemplateItem: { count: vi.fn(), findFirst: vi.fn() },
+  checklistItemResult: { upsert: vi.fn() },
+  checkInDamage: { findFirst: vi.fn(), create: vi.fn() },
+  preliminaryVehicleDiagnostic: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+    findFirstOrThrow: vi.fn(),
+  },
+  pdcFinding: {
+    create: vi.fn(),
+    updateMany: vi.fn(),
+    findFirstOrThrow: vi.fn(),
+  },
   vehicleHistoryEvent: { create: vi.fn() },
   vehicleOdometerReading: { create: vi.fn() },
   auditLog: { create: vi.fn() },
@@ -31,12 +52,17 @@ vi.mock("../src/lib/prisma.js", () => ({ prisma: db }));
 import {
   closeWorkOrder,
   completeCheckIn,
+  completePdc,
   createCheckIn,
   createConcern,
+  createDamage,
+  createPdc,
+  createPdcFinding,
   createWorkOrder,
   getWorkOrder,
   listConcerns,
   listWorkOrders,
+  saveChecklistResult,
   updateCheckIn,
   type WorkOrderActor,
 } from "../src/modules/work-orders/work-orders.service.js";
@@ -303,10 +329,154 @@ describe("work order intake security and consistency", () => {
   });
 });
 
+describe("functional checklist, damage map and PDC", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.$transaction.mockImplementation(
+      async (callback: (tx: typeof db) => unknown) => callback(db),
+    );
+    db.checklistInstance.findFirst.mockResolvedValue({
+      id: "instance-a",
+      templateId: "template-a",
+    });
+    db.checklistTemplateItem.findFirst.mockResolvedValue({
+      responseType: "STATUS",
+      allowNotes: true,
+    });
+    db.checklistItemResult.upsert.mockResolvedValue({
+      id: "result-a",
+      itemId: "item-a",
+      status: "ISSUE",
+    });
+  });
+
+  it.each(["OK", "ISSUE", "NOT_CHECKED", "NOT_APPLICABLE"] as const)(
+    "persists explicit checklist status %s",
+    async (status) => {
+      await saveChecklistResult(actor, "order-a", "item-a", { status });
+      expect(db.checklistItemResult.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ companyId: "company-a", status }),
+        }),
+      );
+    },
+  );
+
+  it("does not interpret an absent response as OK", async () => {
+    db.checklistInstance.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      saveChecklistResult(actor, "order-a", "item-a", { status: "OK" }),
+    ).rejects.toMatchObject({ code: "CHECKLIST_NOT_EDITABLE" });
+  });
+
+  it("records damage from the authenticated tenant and session actor", async () => {
+    db.vehicleCheckIn.findFirst.mockResolvedValue({
+      id: "check-a",
+      vehicleId: "vehicle-a",
+      branchId: "branch-a",
+    });
+    db.checkInDamage.create.mockResolvedValue({
+      id: "damage-a",
+      location: "HOOD",
+      damageType: "DENT",
+      severity: "MODERATE",
+      description: null,
+      observedAt: new Date(),
+    });
+    await createDamage(actor, "order-a", {
+      location: "HOOD",
+      damageType: "DENT",
+      severity: "MODERATE",
+      description: null,
+    });
+    expect(db.checkInDamage.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          companyId: "company-a",
+          observedByUserId: "user-a",
+          checkInId: "check-a",
+        }),
+      }),
+    );
+    expect(db.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "DAMAGE_CREATE" }),
+    });
+  });
+
+  it("requires a completed check-in before creating PDC", async () => {
+    db.preliminaryVehicleDiagnostic.findFirst.mockResolvedValue(null);
+    db.workOrder.findFirst.mockResolvedValue({
+      branchId: "branch-a",
+      vehicleId: "vehicle-a",
+    });
+    db.vehicleCheckIn.findFirst.mockResolvedValue(null);
+    await expect(createPdc(actor, "order-a", {})).rejects.toMatchObject({
+      code: "CHECK_IN_NOT_COMPLETED",
+    });
+  });
+
+  it("creates findings with deterministic sequence and no sensitive text in audit metadata", async () => {
+    db.preliminaryVehicleDiagnostic.findFirst.mockResolvedValue({
+      id: "pdc-a",
+    });
+    db.preliminaryVehicleDiagnostic.update.mockResolvedValue({
+      findingCounter: 2,
+      branchId: "branch-a",
+    });
+    db.pdcFinding.create.mockResolvedValue({
+      id: "finding-a",
+      category: "BRAKES",
+      severity: "HIGH",
+      requiresImmediateAttention: true,
+    });
+    await createPdcFinding(actor, "order-a", {
+      category: "BRAKES",
+      status: "ISSUE",
+      severity: "HIGH",
+      description: "Texto técnico",
+      recommendation: "Inspecionar",
+      requiresImmediateAttention: true,
+    });
+    expect(db.pdcFinding.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sequence: 2,
+          createdByUserId: "user-a",
+        }),
+      }),
+    );
+    expect(db.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        metadata: expect.not.objectContaining({
+          description: expect.anything(),
+          recommendation: expect.anything(),
+        }),
+      }),
+    });
+  });
+
+  it("uses CAS when completing PDC and emits no event for the loser", async () => {
+    db.preliminaryVehicleDiagnostic.findFirst.mockResolvedValue({
+      id: "pdc-a",
+      vehicleId: "vehicle-a",
+      branchId: "branch-a",
+      mileage: null,
+      findingCounter: 1,
+    });
+    db.preliminaryVehicleDiagnostic.updateMany.mockResolvedValue({ count: 0 });
+    await expect(completePdc(actor, "order-a")).rejects.toMatchObject({
+      code: "PDC_ALREADY_COMPLETED",
+    });
+    expect(db.vehicleHistoryEvent.create).not.toHaveBeenCalled();
+  });
+});
+
 describe("immutable customer concerns", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    db.$transaction.mockImplementation(async (callback: (tx: typeof db) => unknown) => callback(db));
+    db.$transaction.mockImplementation(
+      async (callback: (tx: typeof db) => unknown) => callback(db),
+    );
     db.workOrder.update.mockResolvedValue({
       concernCounter: 2,
       vehicleId: "vehicle-a",
@@ -372,7 +542,9 @@ describe("immutable customer concerns", () => {
 describe("documentary check-in", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    db.$transaction.mockImplementation(async (callback: (tx: typeof db) => unknown) => callback(db));
+    db.$transaction.mockImplementation(
+      async (callback: (tx: typeof db) => unknown) => callback(db),
+    );
     db.workOrder.findFirst.mockResolvedValue({
       id: "order-a",
       companyId: "company-a",
@@ -385,6 +557,17 @@ describe("documentary check-in", () => {
       id: "check-in-a",
       status: "DRAFT",
     });
+    db.checklistTemplate.findFirst.mockResolvedValue({
+      id: "template-a",
+      version: 1,
+    });
+    db.checklistInstance.create.mockResolvedValue({ id: "instance-a" });
+    db.checklistInstance.findFirst.mockResolvedValue({
+      id: "instance-a",
+      templateId: "template-a",
+    });
+    db.checklistTemplateItem.count.mockResolvedValue(0);
+    db.checklistInstance.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it("derives all tenant relationships from the work order", async () => {
@@ -402,6 +585,14 @@ describe("documentary check-in", () => {
         }),
       }),
     );
+    expect(db.checklistInstance.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        companyId: "company-a",
+        checkInId: "check-in-a",
+        templateId: "template-a",
+        templateVersion: 1,
+      }),
+    });
   });
 
   it("allows edits only while draft", async () => {

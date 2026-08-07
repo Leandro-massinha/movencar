@@ -41,6 +41,18 @@ const demoUser: User = {
     "customers.create",
     "customers.update",
     "customers.delete",
+    "work_orders.view",
+    "work_orders.create",
+    "work_orders.close",
+    "customer_concerns.create",
+    "checkins.view",
+    "checkins.create",
+    "checkins.update",
+    "checkins.complete",
+    "pdc.view",
+    "pdc.create",
+    "pdc.update",
+    "pdc.complete",
   ],
 };
 const demoTenant: TenantContext = {

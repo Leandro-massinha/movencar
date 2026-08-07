@@ -13,6 +13,11 @@
 
 ## Fundação de Entrada, OS e PDC
 
+- Check-in funcional evoluiu sem entidade concorrente: template global versionado, 9 seções/56 itens, instância por Check-in, respostas explícitas, progresso e congelamento na conclusão.
+- Mapa de avarias estruturado e responsivo registra localização, tipo e severidade somente no rascunho, com timeline e AuditLog.
+- PDC funcional mantém relato/check-in apenas como referência, findings técnicos separados, prioridade/atenção imediata, CAS de conclusão e integração monotônica com odômetro e Histórico do Veículo.
+- APIs e telas `/work-orders/:id/check-in` e `/work-orders/:id/pdc` exigem módulo `workshop` e permissões granulares. Fotos, assinatura, PDF, road test, diagnóstico definitivo e orçamento continuam adiados.
+
 - WorkOrder tornou-se o registro operacional obrigatório para toda entrada física, com número monotônico e único por empresa, finalidade, status reduzidos e idempotência de abertura. A numeração não é fiscal e pode conter lacunas, mas nunca duplicatas ou reutilização.
 - Encerramento normal, cancelamento e encerramento sem serviço preservam timeline e AuditLog; o caso sem serviço mantém motivo estruturado e todo fechamento concorrente usa compare-and-swap.
 - CustomerConcern foi implementado como relato original imutável, ordenado dentro da OS e separado de Check-in/PDC/diagnóstico.

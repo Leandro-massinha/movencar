@@ -25,3 +25,11 @@ Customer é a entidade canônica do cliente em todos os módulos. Informações 
 O cadastro de Customer é progressivo. Um dado opcional no cadastro geral pode ser obrigatório apenas no contexto da operação que depende dele.
 
 Dados pessoais sensíveis não devem ser incluídos integralmente em logs ou AuditLog metadata sem necessidade explícita.
+
+Checklist concluído deve preservar permanentemente a versão do template utilizada.
+
+A ausência de resposta em checklist nunca deve ser interpretada como OK.
+
+PDC representa avaliação técnica inicial e nunca substitui Relato do Cliente, Check-in ou Diagnóstico Técnico.
+
+Avarias registradas na entrada pertencem ao contexto documental do Check-in e não podem ser silenciosamente removidas após sua conclusão.
