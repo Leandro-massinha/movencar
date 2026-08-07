@@ -2,6 +2,18 @@
 
 Última atualização: 07/08/2026
 
+## Fundação modular da plataforma
+
+- Arquitetura consolidada como monólito modular, preservando uma API Node.js, uma SPA React e um PostgreSQL.
+- Criados `Module` e `CompanyModule`, com ativação, expiração, configuração e estados que bloqueiam acesso sem apagar dados.
+- Feature gate central no backend usa apenas `req.auth.companyId`; Customers e Vehicles agora exigem módulo ativo antes da permissão por ação.
+- `/auth/me` fornece os módulos habilitados. Menu e guards do frontend exigem módulo e permissão, permanecendo apenas como barreira de UX complementar.
+- Mapa de domínios, dependências, estratégia fiscal, snapshots, providers, arquivos e eventos internos documentados.
+- BusinessType múltiplo, perfis fiscais, catálogo, anexos e outbox/event bus foram deliberadamente mantidos como decisões arquiteturais, sem tabelas prematuras.
+- Migrations `20260807210000_add_platform_modules` e `20260807211000_backfill_platform_modules` criadas com FKs restritivas, índices tenant/status e ativação retrocompatível para empresas existentes.
+
+Arquivos centrais: `backend/src/modules/platform/module-gate.ts`, `docs/PLATFORM_ARCHITECTURE.md`, `docs/MODULE_SYSTEM.md`, `docs/DOMAIN_MAP.md`, `docs/INTERNAL_EVENTS.md` e `docs/FISCAL_ARCHITECTURE.md`.
+
 ## Módulo Veículos concluído
 
 ### Auditoria de segurança do Pull Request #3

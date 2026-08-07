@@ -3,7 +3,7 @@ import type { TenantContext, User } from '../types/auth'
 import { api, setAccessToken } from '../services/api'
 
 const demoUser: User = { id: 'usr-1', name: 'Marina Costa', email: 'marina@movencar.demo', role: 'Administrador', permissions: ['dashboard.view','agenda.view','vehicles.view','vehicles.create','vehicles.update','vehicles.delete','orders.view','finance.view','crm.view','yard.view','tools.view','settings.manage','customers.view','customers.create','customers.update','customers.delete'] }
-const demoTenant: TenantContext = { companyId: 'movencar-demo', companyName: 'Oficina Avenida', branchId: 'matriz', branchName: 'Matriz - Centro' }
+const demoTenant: TenantContext = { companyId: 'movencar-demo', companyName: 'Oficina Avenida', branchId: 'matriz', branchName: 'Matriz - Centro', enabledModules: ['core','customers','vehicles','workshop','finance','crm','yard','tools-assets'] }
 interface AuthValue { user: User | null; tenant: TenantContext; authenticated: boolean; initializing?: boolean; login: (email: string, password: string) => Promise<void>; logout: () => void; setBranch: (id: string) => void }
 // Shared here so the provider remains the single owner of demo-session behavior.
 // eslint-disable-next-line react-refresh/only-export-components
