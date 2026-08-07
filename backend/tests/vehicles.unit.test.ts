@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest'
-import { createVehicleSchema,listVehiclesSchema,updateVehicleSchema } from '../src/modules/vehicles/vehicles.schemas.js'
+import { createVehicleSchema,listVehicleRecordsSchema,listVehiclesSchema,updateVehicleSchema } from '../src/modules/vehicles/vehicles.schemas.js'
 
 type Row={id:string;companyId:string;customerId:string;branchId?:string;plate?:string|null;chassis?:string|null;brand:string;model:string;status:string;deletedAt?:Date}
 class Store{rows:Row[]=[];customers=[{id:'ca',companyId:'A',active:true},{id:'cb',companyId:'B',active:true}];branches=[{id:'ba',companyId:'A',active:true},{id:'bb',companyId:'B',active:true}]
@@ -16,7 +16,8 @@ it('normalizes legacy and Mercosul plates',()=>{expect(createVehicleSchema.parse
 it('allows a vehicle without plate',()=>expect(createVehicleSchema.parse({customerId,brand:'Maquina',model:'Sem placa'}).plate).toBeUndefined())
 it('normalizes chassis and RENAVAM',()=>expect(createVehicleSchema.parse({customerId,brand:'VW',model:'Gol',chassis:'9bwzzz377vt004251',renavam:'001.234.567-89'})).toMatchObject({chassis:'9BWZZZ377VT004251',renavam:'00123456789'}))
 it('rejects invalid plate, negative mileage and absurd doors',()=>{const base={customerId,brand:'VW',model:'Gol'};expect(()=>createVehicleSchema.parse({...base,plate:'INVALIDA'})).toThrow();expect(()=>createVehicleSchema.parse({...base,currentMileage:-1})).toThrow();expect(()=>createVehicleSchema.parse({...base,doors:20})).toThrow()})
-it('requires changes on update and limits pagination',()=>{expect(()=>updateVehicleSchema.parse({})).toThrow();expect(listVehiclesSchema.parse({})).toMatchObject({page:1,limit:20});expect(()=>listVehiclesSchema.parse({limit:101})).toThrow()})})
+it('requires changes on update and limits pagination',()=>{expect(()=>updateVehicleSchema.parse({})).toThrow();expect(listVehiclesSchema.parse({})).toMatchObject({page:1,limit:20});expect(()=>listVehiclesSchema.parse({limit:101})).toThrow()})
+it('limits ownership and odometer pagination to 100',()=>{expect(listVehicleRecordsSchema.parse({})).toEqual({page:1,limit:20});expect(()=>listVehicleRecordsSchema.parse({limit:101})).toThrow()})})
 
 describe('vehicle tenant rules',()=>{
 it('company A creates and lists its vehicle',()=>expect(seed().list('A').data.map(x=>x.id)).toEqual(['va']))

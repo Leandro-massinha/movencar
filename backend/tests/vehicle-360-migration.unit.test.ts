@@ -8,6 +8,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const hardeningMigration = readFileSync(
+  new URL(
+    "../prisma/migrations/20260808150000_harden_vehicle_360_consistency/migration.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 describe("vehicle 360 database invariants", () => {
   it("enforces one current owner and valid ownership periods", () => {
@@ -35,5 +42,17 @@ describe("vehicle 360 database invariants", () => {
     );
     expect(migration).toContain('INSERT INTO "VehicleOwnershipHistory"');
     expect(migration).toContain('INSERT INTO "VehicleOdometerReading"');
+  });
+
+  it("deduplicates odometer operations by tenant, source and sourceId", () => {
+    expect(hardeningMigration).toContain(
+      'SET "sourceId" = "id"::text',
+    );
+    expect(hardeningMigration).toContain(
+      'VehicleOdometerReading_source_operation_key',
+    );
+    expect(hardeningMigration).toContain(
+      'ON "VehicleOdometerReading"("companyId", "source", "sourceId")',
+    );
   });
 });

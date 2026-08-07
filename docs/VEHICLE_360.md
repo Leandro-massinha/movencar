@@ -34,4 +34,6 @@ Consultas: `GET /api/vehicles/:id/ownership` e `GET /api/vehicles/:id/odometer-r
 
 ## Concorrência e idempotência
 
-O índice parcial impede dois proprietários atuais. A troca ocorre na mesma transação da projeção `customerId`; conflito aborta tudo. A elevação de quilometragem continua condicional e atômica. Produtores futuros devem usar uma chave idempotente por origem antes de registrar leitura/evento automático.
+O índice parcial impede dois proprietários atuais. A troca usa compare-and-swap em `Vehicle.customerId`: somente a requisição que ainda encontra o proprietário esperado pode alterar a projeção, encerrar o período e criar o sucessor na mesma transação. A perdedora recebe conflito e não produz ownership, timeline ou AuditLog. Isso mantém `Vehicle.customerId` igual ao `OWNER` atual mesmo em João → Maria concorrente com João → Carlos.
+
+A elevação de quilometragem continua condicional e atômica. Em 55.000 × 52.000 vence a maior projeção; a leitura menor deve entrar pelo fluxo histórico quando representar data anterior. Em 55.000 × 55.000 apenas uma atualização gera timeline/leitura e a outra é no-op. Leituras usam o ID do evento de timeline como identidade da operação, com índice único parcial por empresa, fonte e `sourceId`. Submissões manuais distintas continuam sendo fatos independentes; uma futura API com retry externo deverá exigir chave de idempotência.

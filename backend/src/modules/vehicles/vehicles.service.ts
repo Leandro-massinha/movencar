@@ -202,7 +202,7 @@ export async function listVehicleOwnerships(
         customer: { select: { id: true, name: true, document: true } },
         createdBy: { select: { name: true } },
       },
-      orderBy: [{ validFrom: "desc" }, { createdAt: "desc" }],
+      orderBy: [{ validFrom: "desc" }, { createdAt: "desc" }, { id: "desc" }],
       skip: (input.page - 1) * input.limit,
       take: input.limit,
     }),
@@ -237,7 +237,11 @@ export async function listVehicleOdometerReadings(
         branch: { select: { name: true } },
         user: { select: { name: true } },
       },
-      orderBy: [{ recordedAt: "desc" }, { createdAt: "desc" }],
+      orderBy: [
+        { recordedAt: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
       skip: (input.page - 1) * input.limit,
       take: input.limit,
     }),
@@ -276,20 +280,7 @@ export async function createVehicle(
           isCurrent: true,
         },
       });
-      if (vehicle.currentMileage != null)
-        await tx.vehicleOdometerReading.create({
-          data: {
-            companyId: actor.companyId,
-            vehicleId: vehicle.id,
-            branchId: actor.branchId,
-            userId: actor.userId,
-            mileage: vehicle.currentMileage,
-            recordedAt: now,
-            source: "VEHICLE",
-            sourceId: vehicle.id,
-          },
-        });
-      await tx.vehicleHistoryEvent.create({
+      const history = await tx.vehicleHistoryEvent.create({
         data: {
           companyId: actor.companyId,
           vehicleId: vehicle.id,
@@ -305,6 +296,19 @@ export async function createVehicle(
           isManual: false,
         },
       });
+      if (vehicle.currentMileage != null)
+        await tx.vehicleOdometerReading.create({
+          data: {
+            companyId: actor.companyId,
+            vehicleId: vehicle.id,
+            branchId: actor.branchId,
+            userId: actor.userId,
+            mileage: vehicle.currentMileage,
+            recordedAt: now,
+            source: "VEHICLE",
+            sourceId: history.id,
+          },
+        });
       await tx.auditLog.create({
         data: auditData(actor, "VEHICLE_CREATE", vehicle.id, {
           customerId: vehicle.customerId,
@@ -351,6 +355,9 @@ export async function updateVehicle(
           id,
           companyId: actor.companyId,
           deletedAt: null,
+          ...(input.customerId && input.customerId !== current.customerId
+            ? { customerId: current.customerId }
+            : {}),
           ...(typeof input.currentMileage === "number"
             ? {
                 OR: [
@@ -386,6 +393,17 @@ export async function updateVehicle(
             "VEHICLE_MILEAGE_DECREASE",
             "A quilometragem atual do veículo não pode ser reduzida.",
           );
+        if (
+          latest &&
+          input.customerId &&
+          input.customerId !== current.customerId &&
+          latest.customerId !== current.customerId
+        )
+          throw new AppError(
+            409,
+            "VEHICLE_OWNER_CONFLICT",
+            "O proprietário do veículo foi alterado por outra operação. Atualize os dados e tente novamente.",
+          );
         throw new AppError(404, "VEHICLE_NOT_FOUND", "Veículo não encontrado.");
       }
       const vehicle = await tx.vehicle.findFirstOrThrow({
@@ -414,20 +432,7 @@ export async function updateVehicle(
           },
         });
       }
-      if (typeof input.currentMileage === "number")
-        await tx.vehicleOdometerReading.create({
-          data: {
-            companyId: actor.companyId,
-            vehicleId: id,
-            branchId: actor.branchId,
-            userId: actor.userId,
-            mileage: input.currentMileage,
-            recordedAt: now,
-            source: "VEHICLE",
-            sourceId: id,
-          },
-        });
-      await tx.vehicleHistoryEvent.create({
+      const history = await tx.vehicleHistoryEvent.create({
         data: {
           companyId: actor.companyId,
           vehicleId: id,
@@ -453,6 +458,19 @@ export async function updateVehicle(
           isManual: false,
         },
       });
+      if (typeof input.currentMileage === "number")
+        await tx.vehicleOdometerReading.create({
+          data: {
+            companyId: actor.companyId,
+            vehicleId: id,
+            branchId: actor.branchId,
+            userId: actor.userId,
+            mileage: input.currentMileage,
+            recordedAt: now,
+            source: "VEHICLE",
+            sourceId: history.id,
+          },
+        });
       await tx.auditLog.create({
         data: auditData(
           actor,

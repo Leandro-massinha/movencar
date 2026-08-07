@@ -7,6 +7,7 @@
 - Auditoria estrutural classificou propostas entre implementação imediata, preparação documental e adiamento responsável.
 - `VehicleOwnershipHistory` implementado como verdade temporal; `Vehicle.customerId` permanece projeção corrente retrocompatível. Trocas preservam o proprietário anterior na mesma transação.
 - `VehicleOdometerReading` implementado como série imutável; cadastro, atualização e evento manual registram leituras sem permitir regressão de `currentMileage`.
+- Auditoria do PR #7 reforçou concorrência com compare-and-swap do proprietário, ordenação determinística das APIs e idempotência de leituras por operação de timeline. A requisição concorrente perdedora não deixa projeção, histórico, evento ou auditoria parcial.
 - Migration incremental adiciona FKs compostas tenant-safe, checks de período/quilometragem, backfill e índice parcial que garante um proprietário atual.
 - Consultas paginadas de propriedade e odômetro usam módulo/permissão de Vehicles e retornam somente seleção pública.
 - ServiceVisit, CustomerConcern, Check-in, checklist e FileAsset/Attachment foram especificados, mas adiados até o primeiro fluxo funcional para evitar tabelas prematuras.
