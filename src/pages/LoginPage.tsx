@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Button, Input } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
+import { getPublicErrorMessage } from "../services/api";
 
 export function LoginPage() {
   const { authenticated, login } = useAuth();
@@ -24,11 +25,7 @@ export function LoginPage() {
       await login(email.trim(), password);
       navigate((location.state as { from?: string })?.from || "/");
     } catch (loginError) {
-      setError(
-        loginError instanceof Error
-          ? loginError.message
-          : "Não foi possível entrar.",
-      );
+      setError(getPublicErrorMessage(loginError, "Não foi possível entrar."));
     } finally {
       setSubmitting(false);
     }

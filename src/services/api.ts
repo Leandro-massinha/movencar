@@ -1,5 +1,18 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
+interface PublicApiError {
+  error?: { message?: unknown };
+}
+
+export function getPublicErrorMessage(
+  error: unknown,
+  fallback = "Não foi possível concluir a operação. Tente novamente.",
+) {
+  if (!axios.isAxiosError<PublicApiError>(error)) return fallback;
+  const message = error.response?.data?.error?.message;
+  return typeof message === "string" && message.trim() ? message : fallback;
+}
+
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   withCredentials: true,

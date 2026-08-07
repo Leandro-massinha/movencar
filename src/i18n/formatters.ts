@@ -1,6 +1,10 @@
 import { currency, locale } from "./pt-BR";
 
 const digits = (value: string) => value.replace(/\D/g, "");
+const dateValue = (value: string | Date) =>
+  typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T12:00:00`)
+    : new Date(value);
 export const formatNumber = (
   value: number,
   options?: Intl.NumberFormatOptions,
@@ -17,7 +21,7 @@ export const formatDate = (value: string | Date) =>
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(dateValue(value));
 export const formatDateTime = (value: string | Date) =>
   new Intl.DateTimeFormat(locale, {
     day: "2-digit",
@@ -27,7 +31,7 @@ export const formatDateTime = (value: string | Date) =>
     minute: "2-digit",
     hour12: false,
   })
-    .format(new Date(value))
+    .format(dateValue(value))
     .replace(",", "");
 export const formatMileage = (value: number) => `${formatNumber(value)} km`;
 export const formatDocument = (value: string | null) => {

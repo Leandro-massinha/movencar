@@ -70,6 +70,7 @@ describe("formatadores pt-BR", () => {
   it("formata data e data com hora", () => {
     const value = new Date(2026, 7, 7, 14, 30);
     expect(formatDate(value)).toBe("07/08/2026");
+    expect(formatDate("2026-08-07")).toBe("07/08/2026");
     expect(formatDateTime(value)).toBe("07/08/2026 14:30");
   });
 
