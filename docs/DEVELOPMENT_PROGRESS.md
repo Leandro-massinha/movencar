@@ -2,6 +2,24 @@
 
 Última atualização: 07/08/2026
 
+## Módulo Clientes concluído
+
+- Schema Prisma auditado com `Customer`, `CustomerAddress`, `CustomerType` e `CustomerStatus`.
+- Migration `20260807110000_add_customers` criada, revisada e aplicada com chaves estrangeiras, índices de busca e chave composta de tenant para endereços.
+- Documento normalizado para dígitos e único por empresa somente entre registros ativos por índice parcial PostgreSQL, permitindo recadastro após soft delete.
+- Índice parcial garante somente um endereço principal ativo por cliente, reforçado por transações na API.
+- API REST implementada em `/api/customers`, incluindo CRUD, busca, filtros, ordenação, paginação (máximo 100), endereços e soft delete.
+- Todas as consultas de clientes e endereços usam `req.auth.companyId`; filial de origem é validada como ativa e pertencente ao tenant.
+- Permissões `customers.view`, `customers.create`, `customers.update` e `customers.delete` adicionadas ao seed e aplicadas às rotas.
+- Auditoria transacional adicionada para criação, atualização e exclusão de clientes e endereços.
+- Página Clientes conectada à API real com busca, filtros, tabela, paginação, cadastro e exclusão, preservando o design system. Nenhuma dependência de Veículos foi criada.
+- Testes específicos cobrem validação, documentos, isolamento Empresa A x Empresa B, permissões, filial, unicidade, soft delete, paginação, busca e endereço principal.
+- Validação final: backend com 39 testes; frontend com 9 testes; Prisma generate, lint e builds aprovados.
+
+Arquivos centrais: `backend/src/modules/customers/*`, `backend/prisma/schema.prisma`, migration `add_customers`, `backend/prisma/seed.ts`, `src/pages/CustomersPage.tsx` e `src/services/customers.ts`.
+
+Próxima etapa planejada: abrir Pull Request de `feature/customers` para `develop`. Veículos permanece pendente para uma etapa própria.
+
 ## Objetivo do projeto
 
 MovenCar é um SaaS multiempresa para gestão completa de oficinas mecânicas, com isolamento rigoroso de dados por empresa e filial.

@@ -1,15 +1,17 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum RecordStatus {
   ACTIVE
   INACTIVE
 }
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -17,142 +19,230 @@ enum UserStatus {
 }
 
 model Company {
-  id String @id @default(uuid()) @db.Uuid
-  code String @unique @db.VarChar(60)
-  legalName String @db.VarChar(180)
-  tradeName String @db.VarChar(180)
-  document String? @db.VarChar(30)
-  status RecordStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  branches Branch[]
-  users User[]
-  roles Role[]
-  sessions UserSession[]
-  auditLogs AuditLog[]
-  resources TenantTestResource[]
+  id                String               @id @default(uuid()) @db.Uuid
+  code              String               @unique @db.VarChar(60)
+  legalName         String               @db.VarChar(180)
+  tradeName         String               @db.VarChar(180)
+  document          String?              @db.VarChar(30)
+  status            RecordStatus         @default(ACTIVE)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  deletedAt         DateTime?
+  branches          Branch[]
+  users             User[]
+  roles             Role[]
+  sessions          UserSession[]
+  auditLogs         AuditLog[]
+  resources         TenantTestResource[]
+  customers         Customer[]
+  customerAddresses CustomerAddress[]
 }
 
 model Branch {
-  id String @id @default(uuid()) @db.Uuid
-  companyId String @db.Uuid
-  code String @db.VarChar(40)
-  name String @db.VarChar(140)
-  status RecordStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  users User[]
-  auditLogs AuditLog[]
-  resources TenantTestResource[]
+  id              String               @id @default(uuid()) @db.Uuid
+  companyId       String               @db.Uuid
+  code            String               @db.VarChar(40)
+  name            String               @db.VarChar(140)
+  status          RecordStatus         @default(ACTIVE)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  deletedAt       DateTime?
+  company         Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  users           User[]
+  auditLogs       AuditLog[]
+  resources       TenantTestResource[]
+  customersOrigin Customer[]           @relation("CustomerOriginBranch")
+
   @@unique([companyId, code])
   @@index([companyId, status])
 }
 
 model User {
-  id String @id @default(uuid()) @db.Uuid
-  companyId String @db.Uuid
-  defaultBranchId String @db.Uuid
-  name String @db.VarChar(140)
-  email String @db.VarChar(180)
-  passwordHash String
-  status UserStatus @default(ACTIVE)
-  failedLoginAttempts Int @default(0)
-  lockedUntil DateTime?
-  lastLoginAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  defaultBranch Branch @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
-  roles UserRole[]
-  sessions UserSession[]
-  auditLogs AuditLog[] @relation("AuditActor")
+  id                  String        @id @default(uuid()) @db.Uuid
+  companyId           String        @db.Uuid
+  defaultBranchId     String        @db.Uuid
+  name                String        @db.VarChar(140)
+  email               String        @db.VarChar(180)
+  passwordHash        String
+  status              UserStatus    @default(ACTIVE)
+  failedLoginAttempts Int           @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+  company             Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  defaultBranch       Branch        @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
+  roles               UserRole[]
+  sessions            UserSession[]
+  auditLogs           AuditLog[]    @relation("AuditActor")
+
   @@index([companyId, email])
 }
 
 model Role {
-  id String @id @default(uuid()) @db.Uuid
-  companyId String? @db.Uuid
-  code String @db.VarChar(80)
-  name String @db.VarChar(120)
+  id          String           @id @default(uuid()) @db.Uuid
+  companyId   String?          @db.Uuid
+  code        String           @db.VarChar(80)
+  name        String           @db.VarChar(120)
   description String?
-  isSystem Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  isSystem    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  company     Company?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   permissions RolePermission[]
-  users UserRole[]
+  users       UserRole[]
+
   @@unique([companyId, code])
 }
 
 model Permission {
-  id String @id @default(uuid()) @db.Uuid
-  code String @unique @db.VarChar(120)
+  id          String           @id @default(uuid()) @db.Uuid
+  code        String           @unique @db.VarChar(120)
   description String?
-  roles RolePermission[]
+  roles       RolePermission[]
 }
 
 model RolePermission {
-  roleId String @db.Uuid
-  permissionId String @db.Uuid
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
   @@id([roleId, permissionId])
 }
 
 model UserRole {
   userId String @db.Uuid
   roleId String @db.Uuid
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
   @@id([userId, roleId])
 }
 
 model UserSession {
-  id String @id @default(uuid()) @db.Uuid
-  companyId String @db.Uuid
-  userId String @db.Uuid
-  tokenHash String @unique @db.VarChar(64)
-  ipAddress String? @db.VarChar(64)
-  userAgent String?
-  expiresAt DateTime
-  revokedAt DateTime?
-  revokeReason String? @db.VarChar(120)
-  createdAt DateTime @default(now())
-  lastUsedAt DateTime @default(now())
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String    @id @default(uuid()) @db.Uuid
+  companyId    String    @db.Uuid
+  userId       String    @db.Uuid
+  tokenHash    String    @unique @db.VarChar(64)
+  ipAddress    String?   @db.VarChar(64)
+  userAgent    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  revokeReason String?   @db.VarChar(120)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+  company      Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([companyId, userId, revokedAt])
 }
 
 model AuditLog {
-  id String @id @default(uuid()) @db.Uuid
-  companyId String @db.Uuid
-  branchId String? @db.Uuid
-  actorUserId String? @db.Uuid
-  action String @db.VarChar(100)
-  entityType String @db.VarChar(100)
-  entityId String? @db.VarChar(100)
-  metadata Json?
-  ipAddress String? @db.VarChar(64)
-  userAgent String?
-  createdAt DateTime @default(now())
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
-  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @db.Uuid
+  branchId    String?  @db.Uuid
+  actorUserId String?  @db.Uuid
+  action      String   @db.VarChar(100)
+  entityType  String   @db.VarChar(100)
+  entityId    String?  @db.VarChar(100)
+  metadata    Json?
+  ipAddress   String?  @db.VarChar(64)
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
   @@index([companyId, createdAt])
 }
 
 model TenantTestResource {
-  id String @id @default(uuid()) @db.Uuid
-  companyId String @db.Uuid
-  branchId String @db.Uuid
-  name String @db.VarChar(120)
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @db.Uuid
+  branchId  String   @db.Uuid
+  name      String   @db.VarChar(120)
   createdAt DateTime @default(now())
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
   @@index([companyId, branchId])
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+model Customer {
+  id             String  @id @default(uuid()) @db.Uuid
+  companyId      String  @db.Uuid
+  originBranchId String? @db.Uuid
+
+  type   CustomerType   @default(INDIVIDUAL)
+  status CustomerStatus @default(ACTIVE)
+
+  name      String  @db.VarChar(180)
+  tradeName String? @db.VarChar(180)
+
+  document          String? @db.VarChar(30)
+  stateRegistration String? @db.VarChar(40)
+
+  email    String? @db.VarChar(180)
+  phone    String? @db.VarChar(30)
+  whatsapp String? @db.VarChar(30)
+
+  birthDate DateTime? @db.Date
+  notes     String?   @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  originBranch Branch? @relation("CustomerOriginBranch", fields: [originBranchId], references: [id], onDelete: SetNull)
+
+  addresses CustomerAddress[]
+
+  @@unique([id, companyId])
+  @@index([companyId, name])
+  @@index([companyId, status])
+  @@index([companyId, phone])
+  @@index([companyId, whatsapp])
+  @@index([companyId, deletedAt])
+}
+
+model CustomerAddress {
+  id         String @id @default(uuid()) @db.Uuid
+  companyId  String @db.Uuid
+  customerId String @db.Uuid
+
+  label        String? @db.VarChar(80)
+  postalCode   String? @db.VarChar(20)
+  street       String  @db.VarChar(180)
+  number       String? @db.VarChar(30)
+  complement   String? @db.VarChar(120)
+  neighborhood String? @db.VarChar(120)
+  city         String  @db.VarChar(120)
+  state        String  @db.VarChar(40)
+  country      String  @default("BR") @db.VarChar(2)
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
+
+  @@index([companyId, customerId])
+  @@index([companyId, city, state])
 }
