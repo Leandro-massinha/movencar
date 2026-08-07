@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const sql = readFileSync(new URL("../prisma/migrations/20260810120000_add_customer_360_profile/migration.sql", import.meta.url), "utf8");
+const hardeningSql = readFileSync(new URL("../prisma/migrations/20260811120000_harden_customer_360_consistency/migration.sql", import.meta.url), "utf8");
 
 describe("Customer 360 migration", () => {
   it("enforces primary contacts, addresses and profile uniqueness", () => {
@@ -23,5 +24,11 @@ describe("Customer 360 migration", () => {
     for (const type of ["'EMAIL'", "'PHONE'", "'WHATSAPP'"]) expect(sql).toContain(type);
     expect(sql).toContain('INSERT INTO "CustomerFiscalProfile"');
     expect(sql).not.toMatch(/DROP COLUMN\s+"(?:email|phone|whatsapp|stateRegistration)"/);
+  });
+  it("quarantines malformed legacy contacts and makes consent retries unique", () => {
+    expect(hardeningSql).toContain("CustomerContact_active_normalized_format_check");
+    expect(hardeningSql).toContain('SET "isActive" = false, "isPrimary" = false');
+    expect(hardeningSql).toContain("CustomerConsent_companyId_customerId_operationKey_key");
+    expect(hardeningSql).not.toContain("ON DELETE CASCADE");
   });
 });

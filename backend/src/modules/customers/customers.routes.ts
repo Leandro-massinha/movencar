@@ -13,7 +13,7 @@ import {
 } from "./customers.schemas.js";
 import * as service from "./customers.service.js";
 import { requireModule } from "../platform/module-gate.js";
-import { communicationPreferenceSchema, consentSchema, contactIdSchema, contactSchema, duplicateQuerySchema, fiscalProfileSchema, identityProfileSchema, relationshipSchema } from "./customer-profile.schemas.js";
+import { communicationPreferenceSchema, consentSchema, contactIdSchema, contactSchema, customerProfileIdempotencyKeySchema, duplicateQuerySchema, fiscalProfileSchema, identityProfileSchema, relationshipSchema } from "./customer-profile.schemas.js";
 import * as profileService from "./customer-profile.service.js";
 
 export const customersRouter = Router();
@@ -105,7 +105,7 @@ customersRouter.post("/:id/contacts", requirePermission("customers.create"), asy
   const { id } = customerIdSchema.parse(req.params);
   res.status(201).json({ contact: await profileService.createContact(actor(req), id, contactSchema.parse(req.body)) });
 }));
-customersRouter.delete("/:id/contacts/:contactId", requirePermission("customers.delete"), asyncHandler(async (req, res) => {
+customersRouter.delete("/:id/contacts/:contactId", requirePermission("customers.update"), asyncHandler(async (req, res) => {
   const { id, contactId } = contactIdSchema.parse(req.params);
   await profileService.deactivateContact(actor(req), id, contactId); res.status(204).send();
 }));
@@ -123,7 +123,7 @@ customersRouter.put("/:id/communication-preference", requirePermission("customer
 }));
 customersRouter.post("/:id/consents", requirePermission("customers.update"), asyncHandler(async (req, res) => {
   const { id } = customerIdSchema.parse(req.params);
-  res.status(201).json({ consent: await profileService.recordConsent(actor(req), id, consentSchema.parse(req.body)) });
+  res.status(201).json({ consent: await profileService.recordConsent(actor(req), id, consentSchema.parse(req.body), customerProfileIdempotencyKeySchema.parse(req.get("idempotency-key"))) });
 }));
 customersRouter.get(
   "/:id/addresses",

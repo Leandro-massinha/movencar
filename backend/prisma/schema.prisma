@@ -735,6 +735,7 @@ model CustomerConsent {
   source           CustomerConsentSource
   recordedByUserId String                @db.Uuid
   notes            String?               @db.Text
+  operationKey     String?               @db.VarChar(120)
   createdAt        DateTime              @default(now())
 
   company    Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
@@ -744,6 +745,7 @@ model CustomerConsent {
   @@unique([id, companyId])
   @@index([companyId, customerId, type, createdAt])
   @@index([companyId, status, createdAt])
+  @@unique([companyId, customerId, operationKey])
 }
 
 enum WorkOrderPurpose {

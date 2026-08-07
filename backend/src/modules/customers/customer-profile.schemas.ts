@@ -47,6 +47,7 @@ export const consentSchema = z.object({
   source: z.enum(["IN_PERSON", "REMOTE_LINK", "CUSTOMER_PORTAL", "WHATSAPP_LINK", "EMAIL_LINK", "IMPORT", "OTHER"]),
   occurredAt: z.coerce.date(), notes: text(1000),
 });
+export const customerProfileIdempotencyKeySchema = z.string().trim().min(8).max(120).regex(/^[A-Za-z0-9._:-]+$/).optional();
 export const duplicateQuerySchema = z.object({
   document: z.string().trim().transform((value) => value.replace(/\D/g, "")).optional(),
   phone: z.string().trim().transform((value) => value.replace(/\D/g, "")).optional(),
