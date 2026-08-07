@@ -4,6 +4,10 @@
 
 ## Módulo Histórico do Veículo concluído
 
+### Auditoria de segurança do Pull Request #4
+
+Revisão pré-merge concluída em 07/08/2026, sem merge. Foram corrigidos: proteção de quilometragem que dependia apenas de leitura anterior à transação e poderia sofrer corrida concorrente; geração de evento automático em retry sem alteração efetiva; exposição desnecessária de IDs relacionais e `sourceId` na resposta pública; e ausência de teste explícito do adapter mock do histórico. A escrita de quilometragem agora inclui condição atômica tenant-safe, no-op não gera histórico/auditoria e a API retorna somente dados necessários à timeline. Não foi necessária migration adicional.
+
 - `VehicleHistoryEvent` implementado como linha do tempo imutável, com tipos controlados, origem do evento, autoria, filial opcional, data, descrição, quilometragem e metadata interna.
 - Migration `20260807190000_add_vehicle_history` cria FKs compostas tenant-safe para veículo, filial e usuário; o banco impede associações entre empresas diferentes.
 - API disponível em `GET/POST /api/vehicles/:vehicleId/history` e `GET /api/vehicles/:vehicleId/history/:eventId`, sempre usando `companyId` autenticado e `vehicleId`, com filtros por tipo/período, ordenação e paginação máxima de 100.

@@ -232,21 +232,62 @@ export async function updateVehicle(
       "A quilometragem atual do veiculo nao pode ser reduzida.",
     );
   }
+  const fields = Object.keys(input).filter(
+    (field) =>
+      current[field as keyof typeof current] !==
+      input[field as keyof UpdateVehicleInput],
+  );
+  if (!fields.length) return current;
   if (input.customerId) await assertCustomer(actor.companyId, input.customerId);
   await assertBranch(actor.companyId, input.originBranchId);
   try {
     return await prisma.$transaction(async (tx) => {
       const changed = await tx.vehicle.updateMany({
-        where: { id, companyId: actor.companyId, deletedAt: null },
+        where: {
+          id,
+          companyId: actor.companyId,
+          deletedAt: null,
+          ...(typeof input.currentMileage === "number"
+            ? {
+                OR: [
+                  { currentMileage: null },
+                  { currentMileage: { lt: input.currentMileage } },
+                ],
+              }
+            : {}),
+        },
         data: input,
       });
-      if (!changed.count)
+      if (!changed.count) {
+        const latest = await tx.vehicle.findFirst({
+          where: { id, companyId: actor.companyId, deletedAt: null },
+          select: vehicleSelect,
+        });
+        if (
+          latest &&
+          fields.length === 1 &&
+          fields[0] === "currentMileage" &&
+          latest.currentMileage === input.currentMileage
+        )
+          return latest;
+        if (
+          latest &&
+          input.currentMileage !== undefined &&
+          latest.currentMileage !== null &&
+          (input.currentMileage === null ||
+            input.currentMileage < latest.currentMileage)
+        )
+          throw new AppError(
+            400,
+            "VEHICLE_MILEAGE_DECREASE",
+            "A quilometragem atual do veiculo nao pode ser reduzida.",
+          );
         throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+      }
       const vehicle = await tx.vehicle.findFirstOrThrow({
         where: { id, companyId: actor.companyId, deletedAt: null },
         select: vehicleSelect,
       });
-      const fields = Object.keys(input);
       await tx.vehicleHistoryEvent.create({
         data: {
           companyId: actor.companyId,
