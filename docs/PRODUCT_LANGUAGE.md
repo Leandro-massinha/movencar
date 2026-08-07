@@ -31,6 +31,15 @@ Português do Brasil (`pt-BR`) é o idioma oficial da experiência do usuário. 
 | Search / Filter               | Pesquisar / Filtrar               |
 | Check-in                      | Check-in                          |
 | Check-out                     | Entrega do veículo                |
+| Service Visit                 | Atendimento                       |
+| Customer Concern              | Relato do cliente                 |
+| Observation                   | Observação                        |
+| Diagnostic Finding            | Diagnóstico técnico / Constatação |
+| Ownership                     | Propriedade                       |
+| Odometer                      | Quilometragem                     |
+| Damage                        | Avaria                            |
+| Attachment                    | Anexo                             |
+| Checklist Template            | Modelo de Lista de Verificação    |
 
 CRM, PIX, WhatsApp, NF-e, NFC-e, NFS-e, RENAVAM e Check-in permanecem por serem termos consolidados. `Checklist` é apresentado como “Lista de Verificação” em navegação destinada ao usuário geral.
 

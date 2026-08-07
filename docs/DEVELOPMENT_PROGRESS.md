@@ -2,6 +2,16 @@
 
 Última atualização: 07/08/2026
 
+## Fundação Customer 360° e Vehicle 360°
+
+- Auditoria estrutural classificou propostas entre implementação imediata, preparação documental e adiamento responsável.
+- `VehicleOwnershipHistory` implementado como verdade temporal; `Vehicle.customerId` permanece projeção corrente retrocompatível. Trocas preservam o proprietário anterior na mesma transação.
+- `VehicleOdometerReading` implementado como série imutável; cadastro, atualização e evento manual registram leituras sem permitir regressão de `currentMileage`.
+- Migration incremental adiciona FKs compostas tenant-safe, checks de período/quilometragem, backfill e índice parcial que garante um proprietário atual.
+- Consultas paginadas de propriedade e odômetro usam módulo/permissão de Vehicles e retornam somente seleção pública.
+- ServiceVisit, CustomerConcern, Check-in, checklist e FileAsset/Attachment foram especificados, mas adiados até o primeiro fluxo funcional para evitar tabelas prematuras.
+- Documentos Customer 360°, Vehicle 360°, Atendimento, Check-in e Prontuário Automotivo definem segurança, imutabilidade, arquivos, assinatura, divergências e roadmap.
+
 ## Padronização pt-BR
 
 ### Auditoria do Pull Request #6

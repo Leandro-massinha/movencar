@@ -5,6 +5,7 @@ import { authenticate, requirePermission } from "../auth/auth.middleware.js";
 import {
   createVehicleSchema,
   listVehiclesSchema,
+  listVehicleRecordsSchema,
   updateVehicleSchema,
   vehicleIdSchema,
 } from "./vehicles.schemas.js";
@@ -32,6 +33,34 @@ vehiclesRouter.get(
       ),
     ),
   ),
+);
+vehiclesRouter.get(
+  "/:id/ownership",
+  requirePermission("vehicles.view"),
+  asyncHandler(async (req, res) => {
+    const { id } = vehicleIdSchema.parse(req.params);
+    res.json(
+      await service.listVehicleOwnerships(
+        req.auth!.companyId,
+        id,
+        listVehicleRecordsSchema.parse(req.query),
+      ),
+    );
+  }),
+);
+vehiclesRouter.get(
+  "/:id/odometer-readings",
+  requirePermission("vehicles.view"),
+  asyncHandler(async (req, res) => {
+    const { id } = vehicleIdSchema.parse(req.params);
+    res.json(
+      await service.listVehicleOdometerReadings(
+        req.auth!.companyId,
+        id,
+        listVehicleRecordsSchema.parse(req.query),
+      ),
+    );
+  }),
 );
 vehiclesRouter.get(
   "/:id",

@@ -21,6 +21,8 @@ Dados universais permanecem na entidade central. Dados especializados vivem em p
 
 Customer continua canônico para Fiscal, CRM, Workshop e Sales. Consentimentos devem registrar finalidade, base/origem, data e revogação; preferências de comunicação não substituem consentimento. Endereços ganharão propósito e código IBGE somente quando o fluxo correspondente for implementado.
 
+Vehicle também permanece canônico. `VehicleOwnershipHistory` preserva propriedade temporal enquanto `Vehicle.customerId` é a projeção corrente retrocompatível. `VehicleOdometerReading` é a série imutável e `currentMileage` é somente seu resumo monotônico. O prontuário automotivo é uma projeção composta, nunca uma tabela agregadora gigante.
+
 ## Arquivos e anexos
 
 A capacidade futura terá `FileAsset` (metadata: tenant, uploader, MIME validado, tamanho, storage key opaca, checksum e data) separado de `Attachment` (vínculo autorizado com entidade). Binários ficam em object storage exclusivo do MovenCar, não no PostgreSQL. Downloads validarão tenant e permissão do recurso pai; nenhuma entidade aceitará storage key arbitrária do frontend.
@@ -31,7 +33,7 @@ Integrações dependem de portas do domínio (`FiscalProvider`, `PaymentProvider
 
 ## Decisões adiadas
 
-BusinessType, perfis fiscais, catálogo, anexos e event bus estão contratualmente definidos nos documentos desta etapa, mas não receberam tabelas vazias. Isso evita migrations prematuras sem impedir evolução compatível.
+BusinessType, perfis de Customer/Vehicle, ServiceVisit, CustomerConcern, Check-in, checklist, catálogo, anexos e event bus estão contratualmente definidos nos documentos desta etapa, mas não receberam tabelas vazias. Isso evita migrations prematuras sem impedir evolução compatível. Propriedade e odômetro foram implementados porque corrigem perdas históricas em fluxos já ativos.
 
 ## Riscos auditados
 

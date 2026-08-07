@@ -19,6 +19,8 @@ O histórico básico do veículo acompanha o entitlement `vehicles`; `vehicle_hi
 
 `vehicles` depende de `customers`. O gate central não libera Vehicles nem o anuncia em `/auth/me` quando Customers está indisponível. Esta dependência curta fica em código versionado porque é estrutural e estável; não foi criado um motor genérico de dependências. Desativação futura de Customers deve ser recusada enquanto Vehicles estiver ativo pela API administrativa, que ainda não existe.
 
+Customer 360° e Vehicle 360° são capacidades dos módulos existentes `customers` e `vehicles`. Propriedade e odômetro acompanham Vehicles e reutilizam suas permissões. Atendimento, relato e Check-in pertencerão a `workshop`, que dependerá de Customers e Vehicles; não será criado um módulo comercial por entidade.
+
 ## Uso em novas rotas
 
 Cada router comercial deve aplicar, após `authenticate`, um único gate de módulo e depois permissões por endpoint. Regras de datas/status ficam em `modules/platform/module-gate.ts`, não em `if`s locais. Rotas Core (autenticação, sessão e coleta mínima de auditoria) não dependem de assinatura.
