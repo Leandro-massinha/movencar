@@ -24,6 +24,8 @@
 
 Consultas: `GET /api/vehicles/:id/ownership` e `GET /api/vehicles/:id/odometer-readings`, paginadas até 100 e protegidas por módulo Vehicles e `vehicles.view`.
 
+WorkOrder e Check-in reutilizam a mesma série. Quilometragem de entrada usa origem `WORK_ORDER`; conclusão do Check-in usa `CHECK_IN`. Cada leitura referencia o evento de timeline que identifica a operação, e somente valores maiores elevam `currentMileage`.
+
 ## Preparado e documentado
 
 - `VehicleTechnicalProfile` apenas quando novos atributos técnicos tiverem fluxo de manutenção próprio;

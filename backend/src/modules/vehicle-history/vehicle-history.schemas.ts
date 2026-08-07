@@ -54,6 +54,12 @@ export const listHistorySchema = z
         "NOTE",
         "OWNER_CHANGED",
         "GENERAL",
+        "WORK_ORDER_OPENED",
+        "CUSTOMER_CONCERN_RECORDED",
+        "CHECK_IN_COMPLETED",
+        "WORK_ORDER_CLOSED_NO_SERVICE",
+        "WORK_ORDER_COMPLETED",
+        "WORK_ORDER_CANCELLED",
       ])
       .optional(),
     dateFrom: z

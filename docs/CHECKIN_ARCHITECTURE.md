@@ -6,7 +6,7 @@ Check-in é fotografia documental da entrada, não diagnóstico. `CustomerConcer
 
 ## Agregado planejado
 
-`VehicleCheckIn` pertencerá a ServiceVisit, Vehicle, Company e Branch. Estados: `DRAFT`, `COMPLETED`, `CONFIRMED`, `CANCELLED`. Quilometragem cria `VehicleOdometerReading`; combustível será percentual inteiro de 0 a 100 para precisão e UX por marcadores. Conclusão congela template/versão e resultados. Confirmação guarda nome, instante, versão documental e referência segura à assinatura.
+`VehicleCheckIn` implementado pertence a WorkOrder, Vehicle, Customer, Company e Branch por uma FK composta que garante a mesma entrada. Estados: `DRAFT`, `COMPLETED`, `CONFIRMED`, `CANCELLED`. Nesta etapa existem APIs somente para criar/editar rascunho e concluir. Quilometragem cria `VehicleOdometerReading`; combustível é percentual inteiro de 0 a 100 para precisão e UX por marcadores. Conclusão congela os campos atuais. Confirmação permanece bloqueada até snapshot/versionamento serem implementados.
 
 ## Checklist configurável
 
@@ -21,7 +21,7 @@ Check-in é fotografia documental da entrada, não diagnóstico. `CustomerConcer
 
 ## Imutabilidade e retificação
 
-Somente rascunhos são editáveis. Após conclusão, mudanças críticas geram `CheckInAmendment` com campo, valor anterior/novo, motivo, autor e instante. Confirmação não apaga retificações. Operações usam transação, AuditLog no agregado e eventos idempotentes para Vehicle History.
+Somente rascunhos são editáveis. A conclusão usa compare-and-swap e gera timeline, AuditLog e odômetro na mesma transação. Após conclusão, mudanças críticas futuras exigirão `CheckInAmendment` com campo, valor anterior/novo, motivo, autor e instante. Confirmação não apagará retificações.
 
 ## Segurança e permissões
 

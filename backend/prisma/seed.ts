@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
-const permissions = ['dashboard.view','agenda.view','vehicles.view','vehicles.create','vehicles.update','vehicles.delete','vehicle_history.view','vehicle_history.create','orders.view','finance.view','crm.view','yard.view','tools.view','settings.manage','tenant.read','tenant.write','customers.view','customers.create','customers.update','customers.delete']
+const permissions = ['dashboard.view','agenda.view','vehicles.view','vehicles.create','vehicles.update','vehicles.delete','vehicle_history.view','vehicle_history.create','orders.view','finance.view','crm.view','yard.view','tools.view','settings.manage','tenant.read','tenant.write','customers.view','customers.create','customers.update','customers.delete','work_orders.view','work_orders.create','work_orders.close','customer_concerns.create','checkins.view','checkins.create','checkins.update','checkins.complete']
 const modules=[{code:'core',name:'Nucleo da plataforma',isCore:true},{code:'customers',name:'Clientes',isCore:false},{code:'vehicles',name:'Veiculos',isCore:false},{code:'workshop',name:'Oficina',isCore:false},{code:'finance',name:'Financeiro',isCore:false},{code:'crm',name:'CRM',isCore:false},{code:'yard',name:'Patio',isCore:false},{code:'tools-assets',name:'Ferramentas e ativos',isCore:false}]
 const companies = [
   { code: 'oficina-avenida', legalName: 'Oficina Avenida Ltda', tradeName: 'Oficina Avenida', document: '11111111000191', users: [{ name: 'Marina Costa', email: 'marina@movencar.demo', role: 'ADMIN' }, { name: 'Carlos Gestor', email: 'carlos@movencar.demo', role: 'MANAGER' }] },

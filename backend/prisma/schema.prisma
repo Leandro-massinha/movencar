@@ -53,6 +53,10 @@ model Company {
   vehicleHistory    VehicleHistoryEvent[]
   vehicleOwnerships VehicleOwnershipHistory[]
   odometerReadings  VehicleOdometerReading[]
+  workOrders        WorkOrder[]
+  workOrderSequence WorkOrderSequence?
+  customerConcerns  CustomerConcern[]
+  vehicleCheckIns   VehicleCheckIn[]
 }
 
 model Module {
@@ -103,6 +107,8 @@ model Branch {
   vehiclesOrigin   Vehicle[]                @relation("VehicleOriginBranch")
   vehicleHistory   VehicleHistoryEvent[]
   odometerReadings VehicleOdometerReading[]
+  workOrders       WorkOrder[]
+  vehicleCheckIns  VehicleCheckIn[]
 
   @@unique([companyId, code])
   @@unique([id, companyId])
@@ -131,6 +137,9 @@ model User {
   vehicleHistory      VehicleHistoryEvent[]     @relation("VehicleHistoryActor")
   vehicleOwnerships   VehicleOwnershipHistory[] @relation("VehicleOwnershipActor")
   odometerReadings    VehicleOdometerReading[]  @relation("VehicleOdometerActor")
+  attendedWorkOrders  WorkOrder[]               @relation("WorkOrderAttendant")
+  reportedConcerns    CustomerConcern[]         @relation("CustomerConcernReporter")
+  createdCheckIns     VehicleCheckIn[]          @relation("VehicleCheckInCreator")
 
   @@unique([id, companyId])
   @@index([companyId, email])
@@ -268,6 +277,8 @@ model Customer {
   addresses         CustomerAddress[]
   vehicles          Vehicle[]
   vehicleOwnerships VehicleOwnershipHistory[]
+  workOrders        WorkOrder[]
+  vehicleCheckIns   VehicleCheckIn[]
 
   @@unique([id, companyId])
   @@index([companyId, name])
@@ -342,6 +353,8 @@ model Vehicle {
   history          VehicleHistoryEvent[]
   ownerships       VehicleOwnershipHistory[]
   odometerReadings VehicleOdometerReading[]
+  workOrders       WorkOrder[]
+  vehicleCheckIns  VehicleCheckIn[]
 
   @@unique([id, companyId])
   @@index([companyId, customerId])
@@ -425,6 +438,12 @@ enum VehicleHistoryEventType {
   NOTE
   OWNER_CHANGED
   GENERAL
+  WORK_ORDER_OPENED
+  CUSTOMER_CONCERN_RECORDED
+  CHECK_IN_COMPLETED
+  WORK_ORDER_CLOSED_NO_SERVICE
+  WORK_ORDER_COMPLETED
+  WORK_ORDER_CANCELLED
 }
 
 enum VehicleHistorySourceType {
@@ -488,4 +507,154 @@ model CustomerAddress {
 
   @@index([companyId, customerId])
   @@index([companyId, city, state])
+}
+
+enum WorkOrderPurpose {
+  DIAGNOSTIC
+  EVALUATION
+  MAINTENANCE
+  REPAIR
+  INSPECTION
+  REVISION
+  WARRANTY
+  COURTESY
+  RETURN
+  OTHER
+}
+
+enum WorkOrderStatus {
+  OPEN
+  CANCELLED
+  CLOSED_NO_SERVICE
+  CLOSED
+}
+
+enum WorkOrderClosingReason {
+  PRICE
+  POSTPONED
+  NO_AUTHORIZATION
+  PART_UNAVAILABLE
+  CUSTOMER_WITHDREW
+  VEHICLE_REMOVED
+  SECOND_OPINION
+  OTHER
+}
+
+model WorkOrderSequence {
+  companyId String   @id @db.Uuid
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+}
+
+model WorkOrder {
+  id              String                  @id @default(uuid()) @db.Uuid
+  companyId       String                  @db.Uuid
+  branchId        String                  @db.Uuid
+  customerId      String                  @db.Uuid
+  vehicleId       String                  @db.Uuid
+  attendantUserId String                  @db.Uuid
+  number          Int
+  purpose         WorkOrderPurpose
+  status          WorkOrderStatus         @default(OPEN)
+  openedAt        DateTime                @default(now())
+  closedAt        DateTime?
+  mileageAtEntry  Int?
+  notes           String?                 @db.Text
+  closingReason   WorkOrderClosingReason?
+  closingNotes    String?                 @db.Text
+  operationKey    String?                 @db.VarChar(120)
+  concernCounter  Int                     @default(0)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  branch    Branch            @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
+  customer  Customer          @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  vehicle   Vehicle           @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  attendant User              @relation("WorkOrderAttendant", fields: [attendantUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  concerns  CustomerConcern[]
+  checkIn   VehicleCheckIn?
+
+  @@unique([id, companyId])
+  @@unique([id, companyId, branchId, customerId, vehicleId], map: "WorkOrder_intake_identity_key")
+  @@unique([companyId, number])
+  @@unique([companyId, operationKey])
+  @@index([companyId, status, openedAt])
+  @@index([companyId, vehicleId, openedAt])
+  @@index([companyId, customerId, openedAt])
+  @@index([companyId, branchId, openedAt])
+}
+
+enum CustomerConcernPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model CustomerConcern {
+  id               String                  @id @default(uuid()) @db.Uuid
+  companyId        String                  @db.Uuid
+  workOrderId      String                  @db.Uuid
+  reportedByUserId String                  @db.Uuid
+  description      String                  @db.Text
+  category         String?                 @db.VarChar(80)
+  priority         CustomerConcernPriority @default(NORMAL)
+  symptomStartedAt DateTime?
+  frequency        String?                 @db.VarChar(120)
+  condition        String?                 @db.VarChar(240)
+  notes            String?                 @db.Text
+  sequence         Int
+  reportedAt       DateTime                @default(now())
+  createdAt        DateTime                @default(now())
+
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  workOrder  WorkOrder @relation(fields: [workOrderId, companyId], references: [id, companyId], onDelete: Restrict)
+  reportedBy User      @relation("CustomerConcernReporter", fields: [reportedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([companyId, workOrderId, sequence])
+  @@index([companyId, workOrderId, reportedAt])
+}
+
+enum VehicleCheckInStatus {
+  DRAFT
+  COMPLETED
+  CONFIRMED
+  CANCELLED
+}
+
+model VehicleCheckIn {
+  id              String               @id @default(uuid()) @db.Uuid
+  companyId       String               @db.Uuid
+  branchId        String               @db.Uuid
+  workOrderId     String               @db.Uuid
+  vehicleId       String               @db.Uuid
+  customerId      String               @db.Uuid
+  createdByUserId String               @db.Uuid
+  status          VehicleCheckInStatus @default(DRAFT)
+  startedAt       DateTime             @default(now())
+  completedAt     DateTime?
+  confirmedAt     DateTime?
+  mileage         Int?
+  fuelLevel       Int?
+  deliveredBy     String?              @db.VarChar(180)
+  generalNotes    String?              @db.Text
+  templateVersion Int                  @default(1)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  branch    Branch    @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
+  workOrder WorkOrder @relation(fields: [workOrderId, companyId, branchId, customerId, vehicleId], references: [id, companyId, branchId, customerId, vehicleId], onDelete: Restrict, map: "VehicleCheckIn_work_order_fkey")
+  vehicle   Vehicle   @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  customer  Customer  @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  createdBy User      @relation("VehicleCheckInCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([workOrderId, companyId, branchId, customerId, vehicleId], map: "VehicleCheckIn_work_order_key")
+  @@index([companyId, vehicleId, startedAt])
+  @@index([companyId, status, startedAt])
 }

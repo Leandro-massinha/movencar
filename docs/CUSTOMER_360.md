@@ -19,6 +19,8 @@
 - `CustomerRelationship`: vínculo dirigido entre clientes, com tipo, vigência e contexto; não substitui contatos.
 - `CustomerCommunicationPreference` e `CustomerConsent`: preferência operacional separada da prova jurídica de consentimento, incluindo finalidade, origem, versão, concessão e revogação.
 
+Reavaliação na fundação de entrada manteve esses itens documentais adiados. Nome, contato atual e Vehicle já permitem abrir OS sem impor dezenas de campos. Identidade, contatos múltiplos e perfil fiscal só serão migrados junto às respectivas APIs e regras de unicidade/verificação.
+
 ### Adiar
 
 - telas em abas, CRM, marketing, perfil fiscal funcional, financeiro e documentos transacionais, até seus casos de uso serem aprovados.
@@ -26,6 +28,8 @@
 ## Regras
 
 Todas as extensões carregam `companyId`, usam referências compostas e nunca aceitam tenant do cliente HTTP. Contatos e endereços admitem apenas um principal ativo por finalidade quando a feature for migrada. Consentimentos são históricos, não soft-deletados. A futura visão 360 agrega dados por leitura; não copia fontes transacionais.
+
+Deduplicação será assistida por documento normalizado e, como sinais secundários, telefone/e-mail normalizados. O sistema apenas alerta “Possível cliente já cadastrado”; nunca funde pessoas automaticamente. Dado preenchido não equivale a verificado. RG, telefone, e-mail e documentos completos não entram em logs ou metadata de auditoria sem finalidade explícita.
 
 ## Experiência futura
 

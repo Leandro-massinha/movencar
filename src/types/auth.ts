@@ -16,7 +16,15 @@ export type Permission =
   | "customers.view"
   | "customers.create"
   | "customers.update"
-  | "customers.delete";
+  | "customers.delete"
+  | "work_orders.view"
+  | "work_orders.create"
+  | "work_orders.close"
+  | "customer_concerns.create"
+  | "checkins.view"
+  | "checkins.create"
+  | "checkins.update"
+  | "checkins.complete";
 export interface User {
   id: string;
   name: string;
