@@ -71,7 +71,9 @@ describe("Check-in visual, damage map and PDC", () => {
     ).toBeGreaterThan(5);
     fireEvent.click(screen.getAllByRole("button", { name: "Anormalidade" })[0]);
     await waitFor(() => expect(screen.getByText(/1\/36/)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("button", { name: "Capô" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /^Capô, sem avarias registradas$/ }),
+    );
     expect(
       screen.getByRole("dialog", { name: "Registrar avaria" }),
     ).toBeInTheDocument();
