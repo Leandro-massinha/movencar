@@ -4,6 +4,10 @@
 
 ## Fundação modular da plataforma
 
+### Atualização e auditoria do Pull Request #5
+
+A branch foi atualizada por merge de `develop` após a entrada do Histórico do Veículo. Conflitos em schema, seed, documentação e autenticação/frontend foram resolvidos preservando as duas linhas. A timeline básica foi vinculada ao entitlement `vehicles`, mantendo permissões `vehicle_history.*`. Foi adicionada a dependência estrutural `vehicles → customers`, aplicada tanto no gate backend quanto na lista de módulos de `/auth/me`. Também foram reforçados fallback do contexto, rota direta, menu, estados inativos e isolamento do backfill. Nenhuma migration aplicada foi editada.
+
 - Arquitetura consolidada como monólito modular, preservando uma API Node.js, uma SPA React e um PostgreSQL.
 - Criados `Module` e `CompanyModule`, com ativação, expiração, configuração e estados que bloqueiam acesso sem apagar dados.
 - Feature gate central no backend usa apenas `req.auth.companyId`; Customers e Vehicles agora exigem módulo ativo antes da permissão por ação.
@@ -13,6 +17,25 @@
 - Migrations `20260807210000_add_platform_modules` e `20260807211000_backfill_platform_modules` criadas com FKs restritivas, índices tenant/status e ativação retrocompatível para empresas existentes.
 
 Arquivos centrais: `backend/src/modules/platform/module-gate.ts`, `docs/PLATFORM_ARCHITECTURE.md`, `docs/MODULE_SYSTEM.md`, `docs/DOMAIN_MAP.md`, `docs/INTERNAL_EVENTS.md` e `docs/FISCAL_ARCHITECTURE.md`.
+
+## Módulo Histórico do Veículo concluído
+
+### Auditoria de segurança do Pull Request #4
+
+Revisão pré-merge concluída em 07/08/2026, sem merge. Foram corrigidos: proteção de quilometragem que dependia apenas de leitura anterior à transação e poderia sofrer corrida concorrente; geração de evento automático em retry sem alteração efetiva; exposição desnecessária de IDs relacionais e `sourceId` na resposta pública; e ausência de teste explícito do adapter mock do histórico. A escrita de quilometragem agora inclui condição atômica tenant-safe, no-op não gera histórico/auditoria e a API retorna somente dados necessários à timeline. Não foi necessária migration adicional.
+
+- `VehicleHistoryEvent` implementado como linha do tempo imutável, com tipos controlados, origem do evento, autoria, filial opcional, data, descrição, quilometragem e metadata interna.
+- Migration `20260807190000_add_vehicle_history` cria FKs compostas tenant-safe para veículo, filial e usuário; o banco impede associações entre empresas diferentes.
+- API disponível em `GET/POST /api/vehicles/:vehicleId/history` e `GET /api/vehicles/:vehicleId/history/:eventId`, sempre usando `companyId` autenticado e `vehicleId`, com filtros por tipo/período, ordenação e paginação máxima de 100.
+- Eventos manuais aceitam somente `NOTE`, `MILEAGE_RECORDED`, `OWNER_CHANGED` e `GENERAL`; empresa, usuário e origem são derivados pelo backend. O payload de resposta omite `companyId` e `metadata`.
+- Cadastro e atualização de veículos geram eventos automáticos transacionais. A quilometragem atual só aumenta: um evento histórico menor é preservado sem reduzir o veículo, e atualização direta regressiva é rejeitada.
+- Permissões `vehicle_history.view` e `vehicle_history.create` adicionadas ao seed e aplicadas às rotas. Criações manuais geram `AuditLog`.
+- Frontend integrado em `/veiculos/:id/historico`, com resumo do veículo, filtros, timeline responsiva e inclusão de anotação, preservando o design system e o modo mock.
+- Testes cobrem validação, permissões, isolamento Empresa A x Empresa B, filial cross-tenant, autoria derivada da sessão, filtros, ordenação, paginação, resposta pública e regras de quilometragem.
+
+Arquivos centrais: `backend/src/modules/vehicle-history/*`, `backend/prisma/migrations/20260807190000_add_vehicle_history`, `backend/tests/vehicle-history*`, `src/services/vehicleHistory.ts` e `src/pages/VehicleHistoryPage.tsx`.
+
+O histórico básico pertence ao domínio comercial `vehicles` e utiliza o mesmo entitlement, mantendo permissões próprias para visualizar e criar eventos manuais. Nenhum módulo comercial separado de histórico foi criado.
 
 ## Módulo Veículos concluído
 

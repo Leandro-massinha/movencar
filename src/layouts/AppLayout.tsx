@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { hasPermission } from '../lib/permissions'
 import { cn } from '../lib/cn'
 import { IconButton } from '../components/ui'
+import { hasModule } from '../lib/moduleAccess'
 
 const groups = ['OPERACAO','OFICINA','GESTAO','ADMINISTRACAO']
 
@@ -15,7 +16,7 @@ export function AppLayout() {
   const [collapsed,setCollapsed]=useState(false)
   const [mobile,setMobile]=useState(false)
   const current = navigation.find((item) => item.path === location.pathname)?.label || 'Visao geral'
-  const visible = navigation.filter((item) => tenant.enabledModules.includes(item.module)&&hasPermission(user,item.permission))
+  const visible = navigation.filter((item) => hasModule(tenant,item.module)&&hasPermission(user,item.permission))
   const sidebar = <>
     <div className="flex h-16 items-center border-b border-white/10 bg-black px-3"><img src="/movencar-logo.png" alt="MovenCar" className={cn('object-contain', collapsed ? 'h-10 w-12 object-left' : 'h-14 w-40')} /></div>
     <nav className="flex-1 overflow-y-auto px-2 py-3">

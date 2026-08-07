@@ -13,6 +13,12 @@ Estados disponíveis para uma contratação: `ACTIVE`, `INACTIVE`, `SUSPENDED` e
 
 As duas verificações são obrigatórias. O backend é a autoridade. `/auth/me` retorna somente códigos habilitados para UX; o frontend usa esse conjunto no menu e nas rotas, mas isso não substitui o middleware.
 
+O histórico básico do veículo acompanha o entitlement `vehicles`; `vehicle_history.view` e `vehicle_history.create` continuam permissões granulares, não um produto comercial separado. Assim, `/veiculos/:id/historico` exige módulo Vehicles ativo e a permissão correspondente nos dois lados da aplicação.
+
+## Dependências fundamentais
+
+`vehicles` depende de `customers`. O gate central não libera Vehicles nem o anuncia em `/auth/me` quando Customers está indisponível. Esta dependência curta fica em código versionado porque é estrutural e estável; não foi criado um motor genérico de dependências. Desativação futura de Customers deve ser recusada enquanto Vehicles estiver ativo pela API administrativa, que ainda não existe.
+
 ## Uso em novas rotas
 
 Cada router comercial deve aplicar, após `authenticate`, um único gate de módulo e depois permissões por endpoint. Regras de datas/status ficam em `modules/platform/module-gate.ts`, não em `if`s locais. Rotas Core (autenticação, sessão e coleta mínima de auditoria) não dependem de assinatura.
