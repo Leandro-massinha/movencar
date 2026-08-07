@@ -42,6 +42,7 @@ const severityLabels = {
 export function PdcPage() {
   const { id = "" } = useParams();
   const { user } = useAuth();
+  const canUpdate = hasPermission(user, "pdc.update");
   const [data, setData] = useState<PdcWorkspace | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -219,7 +220,7 @@ export function PdcPage() {
                 Quilometragem
                 <Input
                   type="number"
-                  disabled={readonly}
+                  disabled={readonly || !canUpdate}
                   value={data.pdc.mileage ?? ""}
                   onChange={(event) =>
                     setData({
@@ -250,7 +251,7 @@ export function PdcPage() {
             <label className="mt-4 block text-sm font-semibold">
               Observações gerais
               <Textarea
-                disabled={readonly}
+                disabled={readonly || !canUpdate}
                 value={data.pdc.generalNotes ?? ""}
                 onChange={(event) =>
                   setData({
@@ -271,7 +272,7 @@ export function PdcPage() {
                 </p>
               </div>
               <Button
-                disabled={readonly || !hasPermission(user, "pdc.update")}
+                disabled={readonly || saving || !canUpdate}
                 onClick={() => setModal(true)}
               >
                 <Plus className="size-4" />
@@ -325,7 +326,7 @@ export function PdcPage() {
             <Button
               variant="secondary"
               disabled={
-                readonly || saving || !hasPermission(user, "pdc.update")
+                readonly || saving || !canUpdate
               }
               onClick={save}
             >

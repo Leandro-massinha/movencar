@@ -13,6 +13,7 @@
 
 ## Fundação de Entrada, OS e PDC
 
+- Auditoria pré-deploy do PR #10 reforçou imutabilidade histórica no PostgreSQL, coerência de tipos/opções, serialização entre edição e conclusão e conflito de idempotência de avarias. A listagem real de OS agora oferece navegação direta e responsiva para Check-in e PDC, sem enums crus na avaria.
 - Check-in funcional evoluiu sem entidade concorrente: template global versionado, 9 seções/56 itens, instância por Check-in, respostas explícitas, progresso e congelamento na conclusão.
 - Mapa de avarias estruturado e responsivo registra localização, tipo e severidade somente no rascunho, com timeline e AuditLog.
 - PDC funcional mantém relato/check-in apenas como referência, findings técnicos separados, prioridade/atenção imediata, CAS de conclusão e integração monotônica com odômetro e Histórico do Veículo.

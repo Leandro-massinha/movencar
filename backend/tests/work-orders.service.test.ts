@@ -45,6 +45,7 @@ const db = vi.hoisted(() => ({
   vehicleHistoryEvent: { create: vi.fn() },
   vehicleOdometerReading: { create: vi.fn() },
   auditLog: { create: vi.fn() },
+  $queryRaw: vi.fn(),
   $transaction: vi.fn(),
 }));
 vi.mock("../src/lib/prisma.js", () => ({ prisma: db }));
@@ -92,6 +93,7 @@ describe("work order intake security and consistency", () => {
       async (input: ((tx: typeof db) => unknown) | unknown[]) =>
         Array.isArray(input) ? Promise.all(input) : input(db),
     );
+    db.$queryRaw.mockResolvedValue([{ id: "locked" }]);
     db.branch.findFirst.mockResolvedValue({ id: "branch-a" });
     db.customer.findFirst.mockResolvedValue({ id: "customer-a" });
     db.vehicle.findFirst.mockResolvedValue({ id: "vehicle-a" });
@@ -335,6 +337,7 @@ describe("functional checklist, damage map and PDC", () => {
     db.$transaction.mockImplementation(
       async (callback: (tx: typeof db) => unknown) => callback(db),
     );
+    db.$queryRaw.mockResolvedValue([{ id: "locked" }]);
     db.checklistInstance.findFirst.mockResolvedValue({
       id: "instance-a",
       templateId: "template-a",
@@ -342,6 +345,7 @@ describe("functional checklist, damage map and PDC", () => {
     db.checklistTemplateItem.findFirst.mockResolvedValue({
       responseType: "STATUS",
       allowNotes: true,
+      options: null,
     });
     db.checklistItemResult.upsert.mockResolvedValue({
       id: "result-a",
@@ -367,6 +371,29 @@ describe("functional checklist, damage map and PDC", () => {
     await expect(
       saveChecklistResult(actor, "order-a", "item-a", { status: "OK" }),
     ).rejects.toMatchObject({ code: "CHECKLIST_NOT_EDITABLE" });
+  });
+
+  it("rejects mixed values that do not match the configured response type", async () => {
+    await expect(
+      saveChecklistResult(actor, "order-a", "item-a", {
+        status: "OK",
+        numericValue: 10,
+      }),
+    ).rejects.toMatchObject({ code: "CHECKLIST_RESPONSE_INVALID" });
+    expect(db.checklistItemResult.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects a SELECT value outside the versioned item options", async () => {
+    db.checklistTemplateItem.findFirst.mockResolvedValueOnce({
+      responseType: "SELECT",
+      allowNotes: true,
+      options: ["0", "25", "50"],
+    });
+    await expect(
+      saveChecklistResult(actor, "order-a", "item-a", {
+        selectedValue: "100",
+      }),
+    ).rejects.toMatchObject({ code: "CHECKLIST_OPTION_INVALID" });
   });
 
   it("records damage from the authenticated tenant and session actor", async () => {
@@ -401,6 +428,30 @@ describe("functional checklist, damage map and PDC", () => {
     expect(db.auditLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ action: "DAMAGE_CREATE" }),
     });
+  });
+
+  it("rejects reuse of a damage idempotency key with a different payload", async () => {
+    db.checkInDamage.findFirst.mockResolvedValueOnce({
+      id: "damage-a",
+      location: "HOOD",
+      damageType: "DENT",
+      severity: "MODERATE",
+      description: null,
+      observedAt: new Date(),
+    });
+    await expect(
+      createDamage(
+        actor,
+        "order-a",
+        {
+          location: "HOOD",
+          damageType: "SCRATCH",
+          severity: "MINOR",
+          description: null,
+        },
+        "damage:key:1",
+      ),
+    ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
   });
 
   it("requires a completed check-in before creating PDC", async () => {

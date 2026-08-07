@@ -12,9 +12,18 @@ export type DamageLocation =
   | "REAR_RIGHT_DOOR"
   | "TRUNK_LID"
   | "REAR_BUMPER"
+  | "FRONT_LEFT_FENDER"
+  | "FRONT_RIGHT_FENDER"
+  | "REAR_LEFT_QUARTER"
+  | "REAR_RIGHT_QUARTER"
   | "LEFT_MIRROR"
   | "RIGHT_MIRROR"
   | "WINDSHIELD"
+  | "REAR_GLASS"
+  | "LEFT_FRONT_GLASS"
+  | "RIGHT_FRONT_GLASS"
+  | "LEFT_REAR_GLASS"
+  | "RIGHT_REAR_GLASS"
   | "FRONT_LEFT_WHEEL"
   | "FRONT_RIGHT_WHEEL"
   | "REAR_LEFT_WHEEL"
@@ -96,6 +105,14 @@ export interface PdcWorkspace {
     technician: { id: string; name: string };
     findings: Finding[];
   } | null;
+}
+export interface WorkOrderSummary {
+  id: string;
+  number: number;
+  purpose: string;
+  status: string;
+  customer: { id: string; name: string };
+  vehicle: { id: string; plate: string | null; brand: string; model: string };
 }
 
 const useMocks = import.meta.env.VITE_USE_MOCKS !== "false";
@@ -208,6 +225,18 @@ const mockCheckIn: CheckInWorkspace = {
 let mockPdc: PdcWorkspace["pdc"] = null;
 
 export const workshopApi = {
+  listWorkOrders: async () =>
+    useMocks
+      ? ([mockCheckIn.workOrder].map((order) => ({
+          ...order,
+          purpose: "INSPECTION",
+          status: "OPEN",
+        })) as WorkOrderSummary[])
+      : api
+          .get<{ data: WorkOrderSummary[] }>("/work-orders", {
+            params: { page: 1, limit: 100 },
+          })
+          .then(({ data }) => data.data),
   getCheckIn: async (id: string) =>
     useMocks
       ? structuredClone(mockCheckIn)

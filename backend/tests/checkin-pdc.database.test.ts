@@ -153,6 +153,33 @@ suite("Check-in, damage map and PDC PostgreSQL invariants", () => {
         where: { companyId: companyBId },
       }),
     ).toBe(0);
+    await expect(
+      prisma.checklistTemplate.update({
+        where: { id: custom.id },
+        data: { name: "Tentativa de reescrever a v1" },
+      }),
+    ).rejects.toBeDefined();
+    await expect(
+      prisma.checklistTemplateSection.create({
+        data: { templateId: custom.id, title: "Inserção tardia", order: 2 },
+      }),
+    ).rejects.toBeDefined();
+    expect(
+      (await getCheckInWorkspace(companyId, secondOrderId)).checkIn
+        .checklistInstance?.template.name,
+    ).toBe("Check-in específico A");
+    await expect(
+      prisma.checklistTemplate.create({
+        data: {
+          companyId,
+          name: "Check-in específico A v2",
+          type: "CHECK_IN",
+          version: 2,
+          isDefault: false,
+          isSystem: false,
+        },
+      }),
+    ).resolves.toBeDefined();
   });
 
   it("persists every explicit state and requires all mandatory answers", async () => {
@@ -199,6 +226,14 @@ suite("Check-in, damage map and PDC PostgreSQL invariants", () => {
       createDamage(actor, workOrderId, input, "damage:retry:1"),
     ]);
     expect(a.id).toBe(b.id);
+    await expect(
+      createDamage(
+        actor,
+        workOrderId,
+        { ...input, damageType: "SCRATCH" },
+        "damage:retry:1",
+      ),
+    ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
     expect(
       await prisma.checkInDamage.count({ where: { companyId, workOrderId } }),
     ).toBe(1);
@@ -224,9 +259,25 @@ suite("Check-in, damage map and PDC PostgreSQL invariants", () => {
     await expect(createDamage(actor, workOrderId, input)).rejects.toMatchObject(
       { code: "CHECK_IN_NOT_EDITABLE" },
     );
+    const frozenResult = await prisma.checklistItemResult.findFirstOrThrow({
+      where: { companyId, instance: { checkIn: { workOrderId } } },
+    });
+    await expect(
+      prisma.checklistItemResult.update({
+        where: { id: frozenResult.id },
+        data: { note: "Alteração tardia" },
+      }),
+    ).rejects.toBeDefined();
   });
 
   it("allows one active PDC, multiple findings and one concurrent completion", async () => {
+    const concernBefore = await prisma.customerConcern.findFirst({
+      where: { companyId, workOrderId },
+    });
+    const checkInBefore = await prisma.vehicleCheckIn.findFirstOrThrow({
+      where: { companyId, workOrderId },
+      select: { status: true, completedAt: true, fuelLevel: true },
+    });
     const creations = await Promise.allSettled([
       createPdc(actor, workOrderId, { mileage: 41900 }, "pdc:create:1"),
       createPdc(actor, workOrderId, { mileage: 42100 }, "pdc:create:2"),
@@ -285,5 +336,14 @@ suite("Check-in, damage map and PDC PostgreSQL invariants", () => {
         })
       ).currentMileage,
     ).toBeGreaterThanOrEqual(42000);
+    expect(
+      await prisma.customerConcern.findFirst({ where: { companyId, workOrderId } }),
+    ).toEqual(concernBefore);
+    expect(
+      await prisma.vehicleCheckIn.findFirstOrThrow({
+        where: { companyId, workOrderId },
+        select: { status: true, completedAt: true, fuelLevel: true },
+      }),
+    ).toEqual(checkInBefore);
   });
 });

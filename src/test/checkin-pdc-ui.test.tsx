@@ -10,12 +10,14 @@ import { describe, expect, it, vi } from "vitest";
 import { AuthContext } from "../contexts/AuthContext";
 import { CheckInPage } from "../pages/CheckInPage";
 import { PdcPage } from "../pages/PdcPage";
+import { WorkOrdersPage } from "../pages/WorkOrdersPage";
 import { ModulePermissionRoute } from "../routes/AppRoutes";
 import { workshopApi } from "../services/workshop";
 import type { Permission, TenantContext, User } from "../types/auth";
 
 const permissions: Permission[] = [
   "checkins.view",
+  "checkins.create",
   "checkins.update",
   "checkins.complete",
   "pdc.view",
@@ -75,7 +77,26 @@ describe("Check-in visual, damage map and PDC", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Registrar avaria" }));
     await waitFor(() =>
-      expect(screen.getByText(/Capô · SCRATCH/)).toBeInTheDocument(),
+      expect(screen.getByText(/Capô · Risco/)).toBeInTheDocument(),
+    );
+  }, 10_000);
+
+  it("offers a real navigation path from the work order to Check-in and PDC", async () => {
+    render(
+      <AuthContext.Provider value={auth()}>
+        <MemoryRouter>
+          <WorkOrdersPage />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+    expect(await screen.findByText("OS #1842")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Abrir Check-in/ })).toHaveAttribute(
+      "href",
+      "/ordens-servico/demo-os-1842/check-in",
+    );
+    expect(screen.getByRole("link", { name: /Abrir PDC/ })).toHaveAttribute(
+      "href",
+      "/ordens-servico/demo-os-1842/pdc",
     );
   });
 

@@ -7,13 +7,19 @@ describe("Check-in and PDC real API mode", () => {
   beforeEach(() => { vi.resetModules(); vi.stubEnv("VITE_USE_MOCKS", "false"); vi.clearAllMocks(); });
 
   it("uses tenant-protected checklist and damage endpoints without companyId", async () => {
-    http.get.mockResolvedValue({ data: { workOrder: {}, checkIn: {} } });
+    http.get
+      .mockResolvedValueOnce({ data: { data: [] } })
+      .mockResolvedValueOnce({ data: { workOrder: {}, checkIn: {} } });
     http.put.mockResolvedValue({ data: { result: { id: "r" } } });
     http.post.mockResolvedValue({ data: { damage: { id: "d" } } });
     const { workshopApi } = await import("../services/workshop");
+    await workshopApi.listWorkOrders();
     await workshopApi.getCheckIn("order-a");
     await workshopApi.saveResult("order-a", "item-a", { status: "ISSUE", note: "Observado" });
     await workshopApi.createDamage("order-a", { location: "HOOD", damageType: "DENT", severity: "MODERATE", description: null });
+    expect(http.get).toHaveBeenCalledWith("/work-orders", {
+      params: { page: 1, limit: 100 },
+    });
     expect(http.get).toHaveBeenCalledWith("/work-orders/order-a/check-in/workspace");
     expect(http.put.mock.calls[0][1]).not.toHaveProperty("companyId");
     expect(http.post.mock.calls[0][1]).not.toHaveProperty("companyId");

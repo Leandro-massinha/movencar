@@ -13,7 +13,7 @@ import {
 } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import { hasPermission } from "../lib/permissions";
-import { getPublicErrorMessage } from "../services/api";
+import { getApiStatus, getPublicErrorMessage } from "../services/api";
 import {
   workshopApi,
   type CheckInWorkspace,
@@ -38,6 +38,50 @@ const mapAreas: Array<[DamageLocation, string]> = [
   ["TRUNK_LID", "Tampa traseira"],
   ["REAR_BUMPER", "Traseira"],
 ];
+const locationLabels: Record<DamageLocation, string> = {
+  FRONT_BUMPER: "Para-choque dianteiro",
+  REAR_BUMPER: "Para-choque traseiro",
+  HOOD: "Capô",
+  ROOF: "Teto",
+  TRUNK_LID: "Tampa traseira",
+  FRONT_LEFT_FENDER: "Para-lama dianteiro esquerdo",
+  FRONT_RIGHT_FENDER: "Para-lama dianteiro direito",
+  REAR_LEFT_QUARTER: "Lateral traseira esquerda",
+  REAR_RIGHT_QUARTER: "Lateral traseira direita",
+  FRONT_LEFT_DOOR: "Porta dianteira esquerda",
+  FRONT_RIGHT_DOOR: "Porta dianteira direita",
+  REAR_LEFT_DOOR: "Porta traseira esquerda",
+  REAR_RIGHT_DOOR: "Porta traseira direita",
+  LEFT_MIRROR: "Retrovisor esquerdo",
+  RIGHT_MIRROR: "Retrovisor direito",
+  WINDSHIELD: "Para-brisa",
+  REAR_GLASS: "Vidro traseiro",
+  LEFT_FRONT_GLASS: "Vidro dianteiro esquerdo",
+  RIGHT_FRONT_GLASS: "Vidro dianteiro direito",
+  LEFT_REAR_GLASS: "Vidro traseiro esquerdo",
+  RIGHT_REAR_GLASS: "Vidro traseiro direito",
+  FRONT_LEFT_WHEEL: "Roda dianteira esquerda",
+  FRONT_RIGHT_WHEEL: "Roda dianteira direita",
+  REAR_LEFT_WHEEL: "Roda traseira esquerda",
+  REAR_RIGHT_WHEEL: "Roda traseira direita",
+  INTERIOR: "Interior",
+  DASHBOARD: "Painel",
+  TRUNK: "Porta-malas",
+  OTHER: "Outra área",
+};
+const damageTypeLabels: Record<string, string> = {
+  SCRATCH: "Risco",
+  SCUFF: "Ralado",
+  DENT: "Amassado",
+  CRACK: "Trinca",
+  BROKEN: "Quebrado",
+  MISSING: "Ausente",
+  WORN: "Desgastado",
+  STAIN: "Mancha",
+  CHIPPED: "Lascado",
+  DAMAGED: "Danificado",
+  OTHER: "Outro",
+};
 
 export function CheckInPage() {
   const { id = "" } = useParams();
@@ -56,11 +100,30 @@ export function CheckInPage() {
       setData(await workshopApi.getCheckIn(id));
       setError("");
     } catch (cause) {
+      if (
+        getApiStatus(cause) === 404 &&
+        hasPermission(user, "checkins.create")
+      ) {
+        try {
+          await workshopApi.createCheckIn(id);
+          setData(await workshopApi.getCheckIn(id));
+          setError("");
+          return;
+        } catch (createCause) {
+          setError(
+            getPublicErrorMessage(
+              createCause,
+              "Não foi possível iniciar o Check-in.",
+            ),
+          );
+          return;
+        }
+      }
       setError(
         getPublicErrorMessage(cause, "Não foi possível carregar o Check-in."),
       );
     }
-  }, [id]);
+  }, [id, user]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -268,9 +331,8 @@ export function CheckInPage() {
                 className="flex items-center justify-between rounded-md border p-3 text-sm"
               >
                 <span>
-                  {mapAreas.find(([value]) => value === damage.location)?.[1] ??
-                    damage.location}{" "}
-                  · {damage.damageType}
+                  {locationLabels[damage.location]} ·{" "}
+                  {damageTypeLabels[damage.damageType] ?? "Outro"}
                 </span>
                 <Badge
                   tone={damage.severity === "SEVERE" ? "danger" : "warning"}
@@ -445,6 +507,21 @@ export function CheckInPage() {
       >
         <div className="space-y-4">
           <label className="block text-sm font-semibold">
+            Localização
+            <Select
+              value={damageLocation ?? ""}
+              onChange={(event) =>
+                setDamageLocation(event.target.value as DamageLocation)
+              }
+            >
+              {Object.entries(locationLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="block text-sm font-semibold">
             Tipo de avaria
             <Select
               value={damageType}
@@ -458,6 +535,8 @@ export function CheckInPage() {
                 ["BROKEN", "Quebrado"],
                 ["MISSING", "Ausente"],
                 ["WORN", "Desgastado"],
+                ["STAIN", "Mancha"],
+                ["CHIPPED", "Lascado"],
                 ["DAMAGED", "Danificado"],
                 ["OTHER", "Outro"],
               ].map(([value, label]) => (

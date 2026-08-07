@@ -14,6 +14,7 @@ import { VehiclesPage } from "../pages/VehiclesPage";
 import { VehicleHistoryPage } from "../pages/VehicleHistoryPage";
 import { CheckInPage } from "../pages/CheckInPage";
 import { PdcPage } from "../pages/PdcPage";
+import { WorkOrdersPage } from "../pages/WorkOrdersPage";
 import { hasModule, moduleForPermission } from "../lib/moduleAccess";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { authenticated, initializing } = useAuth();
@@ -106,12 +107,8 @@ export function AppRoutes() {
         <Route
           path="ordens-servico"
           element={
-            <Guard p="orders.view">
-              <ListPage
-                title="Ordens de Serviço"
-                description="Do orçamento à entrega do veículo"
-                action="Nova ordem"
-              />
+            <Guard p="work_orders.view">
+              <WorkOrdersPage />
             </Guard>
           }
         />

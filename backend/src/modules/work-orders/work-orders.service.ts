@@ -665,6 +665,15 @@ export async function completeCheckIn(
         "CHECKLIST_NOT_EDITABLE",
         "A Lista de Verificação não está disponível para conclusão.",
       );
+    const lockedInstance = await tx.$queryRaw<Array<{ id: string }>>(
+      PrismaRuntime.sql`SELECT "id" FROM "ChecklistInstance" WHERE "id" = ${instance.id}::uuid AND "companyId" = ${actor.companyId}::uuid AND "status" = 'DRAFT' FOR UPDATE`,
+    );
+    if (!lockedInstance.length)
+      throw new AppError(
+        409,
+        "CHECKLIST_NOT_EDITABLE",
+        "Somente uma Lista de Verificação em rascunho pode ser alterada.",
+      );
     const missingRequired = await tx.checklistTemplateItem.count({
       where: {
         section: { templateId: instance.templateId },
@@ -864,13 +873,22 @@ export async function saveChecklistResult(
         "CHECKLIST_NOT_EDITABLE",
         "Somente uma Lista de Verificação em rascunho pode ser alterada.",
       );
+    const lockedInstance = await tx.$queryRaw<Array<{ id: string }>>(
+      PrismaRuntime.sql`SELECT "id" FROM "ChecklistInstance" WHERE "id" = ${instance.id}::uuid AND "companyId" = ${actor.companyId}::uuid AND "status" = 'DRAFT' FOR UPDATE`,
+    );
+    if (!lockedInstance.length)
+      throw new AppError(
+        409,
+        "CHECKLIST_NOT_EDITABLE",
+        "Somente uma Lista de Verificação em rascunho pode ser alterada.",
+      );
     const item = await tx.checklistTemplateItem.findFirst({
       where: {
         id: itemId,
         active: true,
         section: { templateId: instance.templateId },
       },
-      select: { responseType: true, allowNotes: true },
+      select: { responseType: true, allowNotes: true, options: true },
     });
     if (!item)
       throw new AppError(
@@ -879,15 +897,41 @@ export async function saveChecklistResult(
         "Item da Lista de Verificação não encontrado.",
       );
     const valid =
-      (item.responseType === "STATUS" && input.status !== undefined) ||
-      (item.responseType === "TEXT" && input.textValue != null) ||
-      (item.responseType === "NUMBER" && input.numericValue !== undefined) ||
-      (item.responseType === "SELECT" && input.selectedValue != null);
+      (item.responseType === "STATUS" &&
+        input.status !== undefined &&
+        input.textValue == null &&
+        input.numericValue === undefined &&
+        input.selectedValue == null) ||
+      (item.responseType === "TEXT" &&
+        input.textValue != null &&
+        input.status === undefined &&
+        input.numericValue === undefined &&
+        input.selectedValue == null) ||
+      (item.responseType === "NUMBER" &&
+        input.numericValue !== undefined &&
+        input.status === undefined &&
+        input.textValue == null &&
+        input.selectedValue == null) ||
+      (item.responseType === "SELECT" &&
+        input.selectedValue != null &&
+        input.status === undefined &&
+        input.textValue == null &&
+        input.numericValue === undefined);
     if (!valid)
       throw new AppError(
         400,
         "CHECKLIST_RESPONSE_INVALID",
         "A resposta não corresponde ao tipo do item.",
+      );
+    if (
+      item.responseType === "SELECT" &&
+      (!Array.isArray(item.options) ||
+        !item.options.includes(input.selectedValue!))
+    )
+      throw new AppError(
+        400,
+        "CHECKLIST_OPTION_INVALID",
+        "A opção selecionada não está disponível para este item.",
       );
     if (!item.allowNotes && input.note)
       throw new AppError(
@@ -935,6 +979,24 @@ export async function createDamage(
   input: CreateDamageInput,
   operationKey?: string,
 ) {
+  const assertSameDamage = (existing: {
+    location: string;
+    damageType: string;
+    severity: string;
+    description: string | null;
+  }) => {
+    if (
+      existing.location !== input.location ||
+      existing.damageType !== input.damageType ||
+      existing.severity !== input.severity ||
+      existing.description !== (input.description ?? null)
+    )
+      throw new AppError(
+        409,
+        "IDEMPOTENCY_KEY_REUSED",
+        "A chave de idempotência já foi usada em outra operação.",
+      );
+  };
   if (operationKey) {
     const existing = await prisma.checkInDamage.findFirst({
       where: { companyId: actor.companyId, workOrderId, operationKey },
@@ -947,7 +1009,10 @@ export async function createDamage(
         observedAt: true,
       },
     });
-    if (existing) return existing;
+    if (existing) {
+      assertSameDamage(existing);
+      return existing;
+    }
   }
   try {
     return await prisma.$transaction(async (tx) => {
@@ -956,6 +1021,15 @@ export async function createDamage(
         select: { id: true, vehicleId: true, branchId: true },
       });
       if (!checkIn)
+        throw new AppError(
+          409,
+          "CHECK_IN_NOT_EDITABLE",
+          "Avarias só podem ser registradas durante o Check-in em rascunho.",
+        );
+      const lockedCheckIn = await tx.$queryRaw<Array<{ id: string }>>(
+        PrismaRuntime.sql`SELECT "id" FROM "VehicleCheckIn" WHERE "id" = ${checkIn.id}::uuid AND "companyId" = ${actor.companyId}::uuid AND "status" = 'DRAFT' FOR UPDATE`,
+      );
+      if (!lockedCheckIn.length)
         throw new AppError(
           409,
           "CHECK_IN_NOT_EDITABLE",
@@ -1023,7 +1097,10 @@ export async function createDamage(
           observedAt: true,
         },
       });
-      if (existing) return existing;
+      if (existing) {
+        assertSameDamage(existing);
+        return existing;
+      }
     }
     return conflict(error);
   }
@@ -1238,6 +1315,15 @@ export async function createPdcFinding(
         "PDC_NOT_EDITABLE",
         "Somente um PDC em rascunho pode receber achados.",
       );
+    const lockedPdc = await tx.$queryRaw<Array<{ id: string }>>(
+      PrismaRuntime.sql`SELECT "id" FROM "PreliminaryVehicleDiagnostic" WHERE "id" = ${pdc.id}::uuid AND "companyId" = ${actor.companyId}::uuid AND "status" = 'DRAFT' FOR UPDATE`,
+    );
+    if (!lockedPdc.length)
+      throw new AppError(
+        409,
+        "PDC_NOT_EDITABLE",
+        "Somente um PDC em rascunho pode receber achados.",
+      );
     const updated = await tx.preliminaryVehicleDiagnostic.update({
       where: {
         id_companyId: { id: pdc.id, companyId: actor.companyId },
@@ -1280,29 +1366,40 @@ export async function updatePdcFinding(
   findingId: string,
   input: PdcFindingInput,
 ) {
-  const pdc = await prisma.preliminaryVehicleDiagnostic.findFirst({
-    where: { companyId: actor.companyId, workOrderId, status: "DRAFT" },
-    select: { id: true },
-  });
-  if (!pdc)
-    throw new AppError(
-      409,
-      "PDC_NOT_EDITABLE",
-      "Somente um PDC em rascunho pode ser alterado.",
+  return prisma.$transaction(async (tx) => {
+    const pdc = await tx.preliminaryVehicleDiagnostic.findFirst({
+      where: { companyId: actor.companyId, workOrderId, status: "DRAFT" },
+      select: { id: true },
+    });
+    if (!pdc)
+      throw new AppError(
+        409,
+        "PDC_NOT_EDITABLE",
+        "Somente um PDC em rascunho pode ser alterado.",
+      );
+    const lockedPdc = await tx.$queryRaw<Array<{ id: string }>>(
+      PrismaRuntime.sql`SELECT "id" FROM "PreliminaryVehicleDiagnostic" WHERE "id" = ${pdc.id}::uuid AND "companyId" = ${actor.companyId}::uuid AND "status" = 'DRAFT' FOR UPDATE`,
     );
-  const changed = await prisma.pdcFinding.updateMany({
-    where: { id: findingId, companyId: actor.companyId, pdcId: pdc.id },
-    data: input,
-  });
-  if (!changed.count)
-    throw new AppError(
-      404,
-      "PDC_FINDING_NOT_FOUND",
-      "Achado do PDC não encontrado.",
-    );
-  return prisma.pdcFinding.findFirstOrThrow({
-    where: { id: findingId, companyId: actor.companyId, pdcId: pdc.id },
-    select: findingSelect,
+    if (!lockedPdc.length)
+      throw new AppError(
+        409,
+        "PDC_NOT_EDITABLE",
+        "Somente um PDC em rascunho pode ser alterado.",
+      );
+    const changed = await tx.pdcFinding.updateMany({
+      where: { id: findingId, companyId: actor.companyId, pdcId: pdc.id },
+      data: input,
+    });
+    if (!changed.count)
+      throw new AppError(
+        404,
+        "PDC_FINDING_NOT_FOUND",
+        "Achado do PDC não encontrado.",
+      );
+    return tx.pdcFinding.findFirstOrThrow({
+      where: { id: findingId, companyId: actor.companyId, pdcId: pdc.id },
+      select: findingSelect,
+    });
   });
 }
 
