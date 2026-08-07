@@ -35,10 +35,26 @@ const customerSelect = {
   updatedAt: true,
   originBranch: { select: { id: true, code: true, name: true } },
 } satisfies Prisma.CustomerSelect;
+const customerListSelect = {
+  id: true,
+  originBranchId: true,
+  type: true,
+  status: true,
+  name: true,
+  tradeName: true,
+  document: true,
+  email: true,
+  phone: true,
+  whatsapp: true,
+  createdAt: true,
+  updatedAt: true,
+  originBranch: { select: { id: true, code: true, name: true } },
+} satisfies Prisma.CustomerSelect;
 const addressSelect = {
   id: true,
   customerId: true,
   label: true,
+  type: true,
   postalCode: true,
   street: true,
   number: true,
@@ -47,6 +63,8 @@ const addressSelect = {
   city: true,
   state: true,
   country: true,
+  reference: true,
+  ibgeCode: true,
   isPrimary: true,
   createdAt: true,
   updatedAt: true,
@@ -77,6 +95,31 @@ async function assertBranch(companyId: string, branchId?: string | null) {
   });
   if (!branch)
     throw new AppError(404, "BRANCH_NOT_FOUND", "Filial não encontrada.");
+}
+async function syncLegacyContact(
+  tx: Prisma.TransactionClient,
+  companyId: string,
+  customerId: string,
+  type: "EMAIL" | "PHONE" | "WHATSAPP",
+  value: string | null | undefined,
+) {
+  if (value === undefined) return;
+  await tx.customerContact.updateMany({
+    where: { companyId, customerId, type, isPrimary: true, isActive: true },
+    data: { isPrimary: false },
+  });
+  if (!value) return;
+  const normalizedValue = type === "EMAIL" ? value.trim().toLowerCase() : value.replace(/\D/g, "");
+  const existing = await tx.customerContact.findFirst({
+    where: { companyId, customerId, type, normalizedValue, isActive: true },
+    select: { id: true },
+  });
+  if (existing)
+    await tx.customerContact.update({ where: { id: existing.id }, data: { value, isPrimary: true } });
+  else
+    await tx.customerContact.create({
+      data: { companyId, customerId, type, value, normalizedValue, isPrimary: true },
+    });
 }
 function handleConflict(error: unknown): never {
   if (
@@ -118,7 +161,7 @@ export async function listCustomers(
   const [data, total] = await prisma.$transaction([
     prisma.customer.findMany({
       where,
-      select: customerSelect,
+      select: customerListSelect,
       orderBy: { [input.sortBy]: input.sortOrder },
       skip: (input.page - 1) * input.limit,
       take: input.limit,
@@ -154,6 +197,9 @@ export async function createCustomer(actor: Actor, input: CreateCustomerInput) {
         data: { ...input, companyId: actor.companyId },
         select: customerSelect,
       });
+      await syncLegacyContact(tx, actor.companyId, customer.id, "EMAIL", input.email);
+      await syncLegacyContact(tx, actor.companyId, customer.id, "PHONE", input.phone);
+      await syncLegacyContact(tx, actor.companyId, customer.id, "WHATSAPP", input.whatsapp);
       await tx.auditLog.create({
         data: auditData(actor, "CUSTOMER_CREATE", "Customer", customer.id, {
           name: customer.name,
@@ -204,6 +250,9 @@ export async function updateCustomer(
         where: { id, companyId: actor.companyId, deletedAt: null },
         select: customerSelect,
       });
+      await syncLegacyContact(tx, actor.companyId, id, "EMAIL", input.email);
+      await syncLegacyContact(tx, actor.companyId, id, "PHONE", input.phone);
+      await syncLegacyContact(tx, actor.companyId, id, "WHATSAPP", input.whatsapp);
       await tx.auditLog.create({
         data: auditData(actor, "CUSTOMER_UPDATE", "Customer", id, {
           fields: Object.keys(input),
@@ -228,6 +277,10 @@ export async function deleteCustomer(actor: Actor, id: string) {
     await tx.customerAddress.updateMany({
       where: { customerId: id, companyId: actor.companyId, deletedAt: null },
       data: { deletedAt: now, isPrimary: false },
+    });
+    await tx.customerContact.updateMany({
+      where: { customerId: id, companyId: actor.companyId, isActive: true },
+      data: { isActive: false, isPrimary: false },
     });
     await tx.auditLog.create({
       data: auditData(actor, "CUSTOMER_DELETE", "Customer", id),

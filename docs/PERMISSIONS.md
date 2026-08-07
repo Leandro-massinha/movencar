@@ -4,6 +4,8 @@ Permissoes sao granulares por modulo: `dashboard.view`, `agenda.view`, `vehicles
 
 Clientes utiliza `customers.view`, `customers.create`, `customers.update` e `customers.delete` no frontend e obrigatoriamente nas rotas correspondentes do backend.
 
+Customer 360 reutiliza essas permissões: profile/contatos/deduplicação exigem `customers.view`; criação de contatos e relacionamentos usa `customers.create`; perfis, preferências e consentimentos usam `customers.update`; desativação usa `customers.delete`. Não existe permissão sensível sem uma política funcional distinta.
+
 Veiculos utiliza `vehicles.view`, `vehicles.create`, `vehicles.update` e `vehicles.delete`. Consultas exigem `vehicles.view`; criacao, alteracao e soft delete exigem suas permissoes especificas.
 
 Historico do veiculo utiliza `vehicle_history.view` para consultar a linha do tempo e `vehicle_history.create` para incluir eventos manuais. Eventos automaticos sao criados internamente nas transacoes do modulo de origem e nao dependem de dados de autoria ou empresa enviados pelo frontend.

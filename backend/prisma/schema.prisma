@@ -57,6 +57,12 @@ model Company {
   workOrderSequence WorkOrderSequence?
   customerConcerns  CustomerConcern[]
   vehicleCheckIns   VehicleCheckIn[]
+  customerIdentityProfiles CustomerIdentityProfile[]
+  customerContacts CustomerContact[]
+  customerFiscalProfiles CustomerFiscalProfile[]
+  customerRelationships CustomerRelationship[]
+  customerCommunicationPreferences CustomerCommunicationPreference[]
+  customerConsents CustomerConsent[]
 }
 
 model Module {
@@ -140,6 +146,7 @@ model User {
   attendedWorkOrders  WorkOrder[]               @relation("WorkOrderAttendant")
   reportedConcerns    CustomerConcern[]         @relation("CustomerConcernReporter")
   createdCheckIns     VehicleCheckIn[]          @relation("VehicleCheckInCreator")
+  recordedCustomerConsents CustomerConsent[]    @relation("CustomerConsentRecorder")
 
   @@unique([id, companyId])
   @@index([companyId, email])
@@ -279,6 +286,13 @@ model Customer {
   vehicleOwnerships VehicleOwnershipHistory[]
   workOrders        WorkOrder[]
   vehicleCheckIns   VehicleCheckIn[]
+  identityProfile   CustomerIdentityProfile?
+  contacts          CustomerContact[]
+  fiscalProfile     CustomerFiscalProfile?
+  outgoingRelationships CustomerRelationship[] @relation("CustomerRelationshipSource")
+  incomingRelationships CustomerRelationship[] @relation("CustomerRelationshipTarget")
+  communicationPreference CustomerCommunicationPreference?
+  consents          CustomerConsent[]
 
   @@unique([id, companyId])
   @@index([companyId, name])
@@ -487,6 +501,7 @@ model CustomerAddress {
   customerId String @db.Uuid
 
   label        String? @db.VarChar(80)
+  type         CustomerAddressType @default(OTHER)
   postalCode   String? @db.VarChar(20)
   street       String  @db.VarChar(180)
   number       String? @db.VarChar(30)
@@ -495,6 +510,8 @@ model CustomerAddress {
   city         String  @db.VarChar(120)
   state        String  @db.VarChar(40)
   country      String  @default("BR") @db.VarChar(2)
+  reference    String? @db.VarChar(180)
+  ibgeCode     String? @db.VarChar(7)
 
   isPrimary Boolean @default(false)
 
@@ -504,9 +521,229 @@ model CustomerAddress {
 
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
   customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
+  fiscalProfiles CustomerFiscalProfile[]
 
+  @@unique([id, companyId])
+  @@unique([id, companyId, customerId])
   @@index([companyId, customerId])
   @@index([companyId, city, state])
+}
+
+enum CustomerAddressType {
+  HOME
+  COMMERCIAL
+  FISCAL
+  BILLING
+  DELIVERY
+  OTHER
+}
+
+enum CustomerContactType {
+  PHONE
+  WHATSAPP
+  EMAIL
+}
+
+enum CustomerContactPurpose {
+  PERSONAL
+  COMMERCIAL
+  FINANCIAL
+  ADMINISTRATIVE
+  FLEET
+  EMERGENCY
+  OTHER
+}
+
+enum ContactVerificationSource {
+  MANUAL
+  EMAIL_LINK
+  WHATSAPP
+  SMS
+  CUSTOMER_PORTAL
+  INTEGRATION
+}
+
+model CustomerIdentityProfile {
+  id                    String   @id @default(uuid()) @db.Uuid
+  companyId             String   @db.Uuid
+  customerId            String   @db.Uuid
+  rgNumber               String?  @db.VarChar(40)
+  rgIssuer               String?  @db.VarChar(40)
+  rgIssuerState          String?  @db.VarChar(2)
+  rgIssuedAt             DateTime? @db.Date
+  socialName             String?  @db.VarChar(180)
+  nationality            String?  @db.VarChar(80)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([customerId, companyId])
+  @@index([companyId, customerId])
+}
+
+model CustomerContact {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  companyId          String                    @db.Uuid
+  customerId         String                    @db.Uuid
+  type               CustomerContactType
+  label              String?                   @db.VarChar(80)
+  value              String                    @db.VarChar(180)
+  normalizedValue    String                    @db.VarChar(180)
+  purpose            CustomerContactPurpose    @default(PERSONAL)
+  isPrimary          Boolean                   @default(false)
+  isVerified         Boolean                   @default(false)
+  verifiedAt         DateTime?
+  verificationSource ContactVerificationSource?
+  isActive           Boolean                   @default(true)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@index([companyId, customerId, type, isActive])
+  @@index([companyId, normalizedValue, isActive])
+}
+
+enum TaxpayerIndicator {
+  TAXPAYER
+  EXEMPT
+  NON_TAXPAYER
+  UNKNOWN
+}
+
+model CustomerFiscalProfile {
+  id                    String             @id @default(uuid()) @db.Uuid
+  companyId             String             @db.Uuid
+  customerId            String             @db.Uuid
+  taxpayerIndicator     TaxpayerIndicator  @default(UNKNOWN)
+  stateRegistration     String?            @db.VarChar(40)
+  municipalRegistration String?            @db.VarChar(40)
+  fiscalAddressId       String?            @db.Uuid
+  notes                 String?            @db.Text
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  fiscalAddress CustomerAddress? @relation(fields: [fiscalAddressId, companyId, customerId], references: [id, companyId, customerId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([customerId, companyId])
+  @@index([companyId, customerId])
+  @@index([companyId, fiscalAddressId])
+}
+
+enum CustomerRelationshipType {
+  SPOUSE
+  FAMILY_MEMBER
+  EMPLOYEE
+  DRIVER
+  FLEET_MANAGER
+  FINANCIAL_RESPONSIBLE
+  AUTHORIZED_CONTACT
+  LEGAL_REPRESENTATIVE
+  OTHER
+}
+
+model CustomerRelationship {
+  id               String                   @id @default(uuid()) @db.Uuid
+  companyId        String                   @db.Uuid
+  sourceCustomerId String                   @db.Uuid
+  targetCustomerId String                   @db.Uuid
+  type             CustomerRelationshipType
+  validFrom        DateTime                 @default(now())
+  validUntil       DateTime?
+  notes            String?                  @db.Text
+  createdAt        DateTime                 @default(now())
+
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sourceCustomer Customer @relation("CustomerRelationshipSource", fields: [sourceCustomerId, companyId], references: [id, companyId], onDelete: Restrict)
+  targetCustomer Customer @relation("CustomerRelationshipTarget", fields: [targetCustomerId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@index([companyId, sourceCustomerId, validFrom])
+  @@index([companyId, targetCustomerId, validFrom])
+}
+
+enum CustomerPreferredChannel {
+  PHONE
+  WHATSAPP
+  EMAIL
+  NONE
+}
+
+model CustomerCommunicationPreference {
+  id                      String                   @id @default(uuid()) @db.Uuid
+  companyId               String                   @db.Uuid
+  customerId              String                   @db.Uuid
+  preferredChannel        CustomerPreferredChannel @default(NONE)
+  acceptsOperationalCalls Boolean                  @default(true)
+  acceptsOperationalWhatsapp Boolean               @default(true)
+  acceptsOperationalEmail Boolean                  @default(true)
+  preferredTime           String?                  @db.VarChar(120)
+  notes                   String?                  @db.Text
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([customerId, companyId])
+  @@index([companyId, customerId])
+}
+
+enum CustomerConsentType {
+  PRIVACY_POLICY
+  MARKETING_WHATSAPP
+  MARKETING_EMAIL
+  MARKETING_SMS
+  DATA_PROCESSING
+  CUSTOMER_PORTAL_TERMS
+  OTHER
+}
+
+enum CustomerConsentStatus {
+  GRANTED
+  REVOKED
+}
+
+enum CustomerConsentSource {
+  IN_PERSON
+  REMOTE_LINK
+  CUSTOMER_PORTAL
+  WHATSAPP_LINK
+  EMAIL_LINK
+  IMPORT
+  OTHER
+}
+
+model CustomerConsent {
+  id               String                @id @default(uuid()) @db.Uuid
+  companyId        String                @db.Uuid
+  customerId       String                @db.Uuid
+  type             CustomerConsentType
+  version          String                @db.VarChar(40)
+  status           CustomerConsentStatus
+  grantedAt        DateTime?
+  revokedAt        DateTime?
+  source           CustomerConsentSource
+  recordedByUserId String                @db.Uuid
+  notes            String?               @db.Text
+  createdAt        DateTime              @default(now())
+
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer   Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  recordedBy User     @relation("CustomerConsentRecorder", fields: [recordedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@index([companyId, customerId, type, createdAt])
+  @@index([companyId, status, createdAt])
 }
 
 enum WorkOrderPurpose {

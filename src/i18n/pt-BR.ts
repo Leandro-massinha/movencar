@@ -101,3 +101,31 @@ export const inspectionStatusLabels = {
   NOT_CHECKED: "Não verificado",
   NOT_APPLICABLE: "Não aplicável",
 } as const;
+export const customerContactTypeLabels = {
+  PHONE: "Telefone",
+  WHATSAPP: "WhatsApp",
+  EMAIL: "E-mail",
+} as const;
+export const customerContactPurposeLabels = {
+  PERSONAL: "Pessoal",
+  COMMERCIAL: "Comercial",
+  FINANCIAL: "Financeiro",
+  ADMINISTRATIVE: "Administrativo",
+  FLEET: "Frota",
+  EMERGENCY: "Emergência",
+  OTHER: "Outro",
+} as const;
+export const customerAddressTypeLabels = {
+  HOME: "Residencial",
+  COMMERCIAL: "Comercial",
+  FISCAL: "Fiscal",
+  BILLING: "Cobrança",
+  DELIVERY: "Entrega",
+  OTHER: "Outro",
+} as const;
+export const taxpayerIndicatorLabels = {
+  TAXPAYER: "Contribuinte",
+  EXEMPT: "Isento",
+  NON_TAXPAYER: "Não contribuinte",
+  UNKNOWN: "Não informado",
+} as const;

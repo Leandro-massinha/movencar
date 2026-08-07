@@ -45,6 +45,15 @@ Português do Brasil (`pt-BR`) é o idioma oficial da experiência do usuário. 
 | Final Road Test               | Teste de rodagem final            |
 | Customer Confirmation         | Confirmação do cliente            |
 | Amendment                     | Retificação                       |
+| Customer Identity             | Identificação                     |
+| Customer Contact              | Contato                            |
+| Fiscal Profile                | Dados fiscais                      |
+| Relationship                  | Relacionamento                     |
+| Consent                       | Consentimento                      |
+| Communication Preference      | Preferências de comunicação        |
+| Primary Contact               | Contato principal                  |
+| Verified                      | Verificado                         |
+| Possible Duplicate            | Possível duplicidade               |
 
 CRM, PIX, WhatsApp, NF-e, NFC-e, NFS-e, RENAVAM e Check-in permanecem por serem termos consolidados. `Checklist` é apresentado como “Lista de Verificação” em navegação destinada ao usuário geral.
 

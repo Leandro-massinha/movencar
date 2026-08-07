@@ -31,3 +31,5 @@ Dependências inversas e circulares são proibidas. Integrações transversais d
 Workshop será dono de ServiceVisit, CustomerConcern, Check-in, checklist, observações e diagnóstico. Customer e Vehicle não importam Workshop; suas visões 360° consultam projeções/fachadas de leitura.
 
 WorkOrder é a raiz operacional implementada para entrada física. ServiceVisit futuro representa interação mais ampla e será opcional para OS, evitando duas entidades com a mesma responsabilidade.
+
+Customer 360 é uma capacidade de Customers: perfis, contatos, endereços, relacionamentos, preferências e consentimentos estendem o Customer canônico. Fiscal, CRM, Finance e Workshop apenas referenciam Customer e não mantêm cópias concorrentes.

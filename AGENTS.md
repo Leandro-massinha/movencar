@@ -19,3 +19,9 @@ Relato do cliente, condição observada no Check-in, resultado do PDC, resultado
 Todo veículo que entra fisicamente para atendimento deve possuir Ordem de Serviço, mesmo quando o atendimento terminar apenas em diagnóstico, avaliação ou orçamento não aprovado.
 
 Registros documentais confirmados pelo cliente devem ser versionados e não podem ser alterados silenciosamente.
+
+Customer é a entidade canônica do cliente em todos os módulos. Informações especializadas devem estender Customer por perfis e relacionamentos, nunca criar cópias de cliente por domínio.
+
+O cadastro de Customer é progressivo. Um dado opcional no cadastro geral pode ser obrigatório apenas no contexto da operação que depende dele.
+
+Dados pessoais sensíveis não devem ser incluídos integralmente em logs ou AuditLog metadata sem necessidade explícita.

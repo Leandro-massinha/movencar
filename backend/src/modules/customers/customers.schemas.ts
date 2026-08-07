@@ -44,6 +44,30 @@ const birthDate = z
   .nullable()
   .optional();
 
+function validCpf(value: string) {
+  if (!/^\d{11}$/.test(value) || /^(\d)\1+$/.test(value)) return false;
+  const digit = (length: number) => {
+    const sum = value
+      .slice(0, length)
+      .split("")
+      .reduce((total, number, index) => total + Number(number) * (length + 1 - index), 0);
+    const remainder = (sum * 10) % 11;
+    return remainder === 10 ? 0 : remainder;
+  };
+  return digit(9) === Number(value[9]) && digit(10) === Number(value[10]);
+}
+
+function validCnpj(value: string) {
+  if (!/^\d{14}$/.test(value) || /^(\d)\1+$/.test(value)) return false;
+  const digit = (length: number) => {
+    const weights = length === 12 ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2] : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const sum = value.slice(0, length).split("").reduce((total, number, index) => total + Number(number) * weights[index], 0);
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+  return digit(12) === Number(value[12]) && digit(13) === Number(value[13]);
+}
+
 const customerFields = {
   originBranchId: z.string().uuid().nullable().optional(),
   type: z.enum(["INDIVIDUAL", "COMPANY"]),
@@ -79,6 +103,18 @@ function validateDocument(
           : input.type === "INDIVIDUAL"
             ? "CPF deve ter 11 digitos."
             : "Documento deve ter 11 ou 14 digitos.",
+    });
+  } else if (
+    input.document &&
+    !(
+      (input.document.length === 11 && validCpf(input.document)) ||
+      (input.document.length === 14 && validCnpj(input.document))
+    )
+  ) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["document"],
+      message: input.document.length === 14 ? "CNPJ inválido." : "CPF inválido.",
     });
   }
 }
@@ -116,6 +152,7 @@ export const listCustomersSchema = z.object({
 
 const addressFields = {
   label: optionalText(80),
+  type: z.enum(["HOME", "COMMERCIAL", "FISCAL", "BILLING", "DELIVERY", "OTHER"]).optional(),
   postalCode: optionalDigits(20),
   street: compact(180),
   number: optionalText(30),
@@ -129,6 +166,8 @@ const addressFields = {
     .length(2)
     .transform((value) => value.toUpperCase())
     .optional(),
+  reference: optionalText(180),
+  ibgeCode: z.string().trim().regex(/^\d{7}$/).nullable().optional(),
   isPrimary: z.boolean().optional(),
 };
 export const createAddressSchema = z.object(addressFields);
