@@ -6,10 +6,12 @@
 
 ## Classificação das propostas
 
-### Implementar agora
+### Implementado
 
-- `VehicleOwnershipHistory`, porque o vínculo atual `Vehicle.customerId` já perde a história de propriedade.
-- Backfill retrocompatível: todo veículo existente recebe um proprietário atual a partir de `customerId`.
+- perfis de identidade e fiscal 1:1;
+- contatos múltiplos normalizados, verificáveis e com um principal ativo por tipo;
+- endereço existente evoluído com tipo, referência, IBGE e principalidade protegida no banco;
+- relacionamentos dirigidos, preferência operacional, consentimentos históricos, deduplicação assistida e completude calculada.
 
 ### Preparar e documentar
 
@@ -19,7 +21,7 @@
 - `CustomerRelationship`: vínculo dirigido entre clientes, com tipo, vigência e contexto; não substitui contatos.
 - `CustomerCommunicationPreference` e `CustomerConsent`: preferência operacional separada da prova jurídica de consentimento, incluindo finalidade, origem, versão, concessão e revogação.
 
-Reavaliação na fundação de entrada manteve esses itens documentais adiados. Nome, contato atual e Vehicle já permitem abrir OS sem impor dezenas de campos. Identidade, contatos múltiplos e perfil fiscal só serão migrados junto às respectivas APIs e regras de unicidade/verificação.
+Os campos legados continuam disponíveis durante a transição e foram backfilled para os novos contatos. Customer permanece a fonte de CPF/CNPJ, nome e nascimento.
 
 ### Adiar
 

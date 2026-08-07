@@ -2,6 +2,15 @@
 
 Última atualização: 07/08/2026
 
+## Customer 360 Profile
+
+- Customer permanece canônico; CPF/CNPJ e nascimento não foram duplicados.
+- IdentityProfile, contatos, endereço evoluído, FiscalProfile, relacionamentos, preferência operacional e consentimentos históricos foram implementados com FKs compostas.
+- Campos legados de contato/IE foram preservados e backfilled. Novas escritas legadas sincronizam o contato principal durante a transição.
+- Deduplicação é tenant-safe e mascarada; completude é calculada e não bloqueia cadastro ou abertura de OS.
+- CRM, Fiscal funcional, Financeiro, merge de clientes e UI completa permanecem adiados.
+- Auditoria do PR #9 reforçou sincronização bidirecional das projeções legadas, completude PF/PJ, idempotência de consentimentos e quarentena de contatos legados malformados em migration incremental.
+
 ## Fundação de Entrada, OS e PDC
 
 - WorkOrder tornou-se o registro operacional obrigatório para toda entrada física, com número monotônico e único por empresa, finalidade, status reduzidos e idempotência de abertura. A numeração não é fiscal e pode conter lacunas, mas nunca duplicatas ou reutilização.

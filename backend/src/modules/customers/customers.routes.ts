@@ -13,6 +13,8 @@ import {
 } from "./customers.schemas.js";
 import * as service from "./customers.service.js";
 import { requireModule } from "../platform/module-gate.js";
+import { communicationPreferenceSchema, consentSchema, contactIdSchema, contactSchema, customerProfileIdempotencyKeySchema, duplicateQuerySchema, fiscalProfileSchema, identityProfileSchema, relationshipSchema } from "./customer-profile.schemas.js";
+import * as profileService from "./customer-profile.service.js";
 
 export const customersRouter = Router();
 customersRouter.use(authenticate);
@@ -36,6 +38,11 @@ customersRouter.get(
       ),
     ),
   ),
+);
+customersRouter.get(
+  "/possible-duplicates",
+  requirePermission("customers.view"),
+  asyncHandler(async (req, res) => res.json({ data: await profileService.possibleDuplicates(req.auth!.companyId, duplicateQuerySchema.parse(req.query)) })),
 );
 customersRouter.get(
   "/:id",
@@ -82,6 +89,42 @@ customersRouter.delete(
     res.status(204).send();
   }),
 );
+customersRouter.get("/:id/profile", requirePermission("customers.view"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.json({ profile: await profileService.getCustomerProfile(req.auth!.companyId, id) });
+}));
+customersRouter.put("/:id/identity", requirePermission("customers.update"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.json({ identity: await profileService.upsertIdentity(actor(req), id, identityProfileSchema.parse(req.body)) });
+}));
+customersRouter.get("/:id/contacts", requirePermission("customers.view"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.json({ data: await profileService.listContacts(req.auth!.companyId, id) });
+}));
+customersRouter.post("/:id/contacts", requirePermission("customers.create"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.status(201).json({ contact: await profileService.createContact(actor(req), id, contactSchema.parse(req.body)) });
+}));
+customersRouter.delete("/:id/contacts/:contactId", requirePermission("customers.update"), asyncHandler(async (req, res) => {
+  const { id, contactId } = contactIdSchema.parse(req.params);
+  await profileService.deactivateContact(actor(req), id, contactId); res.status(204).send();
+}));
+customersRouter.put("/:id/fiscal-profile", requirePermission("customers.update"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.json({ fiscalProfile: await profileService.upsertFiscal(actor(req), id, fiscalProfileSchema.parse(req.body)) });
+}));
+customersRouter.post("/:id/relationships", requirePermission("customers.create"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.status(201).json({ relationship: await profileService.createRelationship(actor(req), id, relationshipSchema.parse(req.body)) });
+}));
+customersRouter.put("/:id/communication-preference", requirePermission("customers.update"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.json({ preference: await profileService.upsertCommunicationPreference(actor(req), id, communicationPreferenceSchema.parse(req.body)) });
+}));
+customersRouter.post("/:id/consents", requirePermission("customers.update"), asyncHandler(async (req, res) => {
+  const { id } = customerIdSchema.parse(req.params);
+  res.status(201).json({ consent: await profileService.recordConsent(actor(req), id, consentSchema.parse(req.body), customerProfileIdempotencyKeySchema.parse(req.get("idempotency-key"))) });
+}));
 customersRouter.get(
   "/:id/addresses",
   requirePermission("customers.view"),

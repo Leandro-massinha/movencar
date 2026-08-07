@@ -35,10 +35,26 @@ const customerSelect = {
   updatedAt: true,
   originBranch: { select: { id: true, code: true, name: true } },
 } satisfies Prisma.CustomerSelect;
+const customerListSelect = {
+  id: true,
+  originBranchId: true,
+  type: true,
+  status: true,
+  name: true,
+  tradeName: true,
+  document: true,
+  email: true,
+  phone: true,
+  whatsapp: true,
+  createdAt: true,
+  updatedAt: true,
+  originBranch: { select: { id: true, code: true, name: true } },
+} satisfies Prisma.CustomerSelect;
 const addressSelect = {
   id: true,
   customerId: true,
   label: true,
+  type: true,
   postalCode: true,
   street: true,
   number: true,
@@ -47,6 +63,8 @@ const addressSelect = {
   city: true,
   state: true,
   country: true,
+  reference: true,
+  ibgeCode: true,
   isPrimary: true,
   createdAt: true,
   updatedAt: true,
@@ -78,6 +96,42 @@ async function assertBranch(companyId: string, branchId?: string | null) {
   if (!branch)
     throw new AppError(404, "BRANCH_NOT_FOUND", "Filial não encontrada.");
 }
+async function syncLegacyContact(
+  tx: Prisma.TransactionClient,
+  companyId: string,
+  customerId: string,
+  type: "EMAIL" | "PHONE" | "WHATSAPP",
+  value: string | null | undefined,
+) {
+  if (value === undefined) return;
+  await tx.customerContact.updateMany({
+    where: { companyId, customerId, type, isPrimary: true, isActive: true },
+    data: { isPrimary: false },
+  });
+  if (!value) return;
+  const normalizedValue =
+    type === "EMAIL" ? value.trim().toLowerCase() : value.replace(/\D/g, "");
+  const existing = await tx.customerContact.findFirst({
+    where: { companyId, customerId, type, normalizedValue, isActive: true },
+    select: { id: true },
+  });
+  if (existing)
+    await tx.customerContact.update({
+      where: { id: existing.id },
+      data: { value, isPrimary: true },
+    });
+  else
+    await tx.customerContact.create({
+      data: {
+        companyId,
+        customerId,
+        type,
+        value,
+        normalizedValue,
+        isPrimary: true,
+      },
+    });
+}
 function handleConflict(error: unknown): never {
   if (
     error instanceof PrismaRuntime.PrismaClientKnownRequestError &&
@@ -87,6 +141,18 @@ function handleConflict(error: unknown): never {
       409,
       "CUSTOMER_DOCUMENT_EXISTS",
       "Documento ja cadastrado nesta empresa.",
+    );
+  throw error;
+}
+function handleAddressConflict(error: unknown): never {
+  if (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  )
+    throw new AppError(
+      409,
+      "ADDRESS_PRIMARY_CONFLICT",
+      "Outro endereço já foi definido como principal.",
     );
   throw error;
 }
@@ -118,7 +184,7 @@ export async function listCustomers(
   const [data, total] = await prisma.$transaction([
     prisma.customer.findMany({
       where,
-      select: customerSelect,
+      select: customerListSelect,
       orderBy: { [input.sortBy]: input.sortOrder },
       skip: (input.page - 1) * input.limit,
       take: input.limit,
@@ -154,6 +220,35 @@ export async function createCustomer(actor: Actor, input: CreateCustomerInput) {
         data: { ...input, companyId: actor.companyId },
         select: customerSelect,
       });
+      await syncLegacyContact(
+        tx,
+        actor.companyId,
+        customer.id,
+        "EMAIL",
+        input.email,
+      );
+      await syncLegacyContact(
+        tx,
+        actor.companyId,
+        customer.id,
+        "PHONE",
+        input.phone,
+      );
+      await syncLegacyContact(
+        tx,
+        actor.companyId,
+        customer.id,
+        "WHATSAPP",
+        input.whatsapp,
+      );
+      if (input.stateRegistration)
+        await tx.customerFiscalProfile.create({
+          data: {
+            companyId: actor.companyId,
+            customerId: customer.id,
+            stateRegistration: input.stateRegistration,
+          },
+        });
       await tx.auditLog.create({
         data: auditData(actor, "CUSTOMER_CREATE", "Customer", customer.id, {
           name: customer.name,
@@ -204,6 +299,30 @@ export async function updateCustomer(
         where: { id, companyId: actor.companyId, deletedAt: null },
         select: customerSelect,
       });
+      await syncLegacyContact(tx, actor.companyId, id, "EMAIL", input.email);
+      await syncLegacyContact(tx, actor.companyId, id, "PHONE", input.phone);
+      await syncLegacyContact(
+        tx,
+        actor.companyId,
+        id,
+        "WHATSAPP",
+        input.whatsapp,
+      );
+      if (input.stateRegistration !== undefined)
+        await tx.customerFiscalProfile.upsert({
+          where: {
+            customerId_companyId: {
+              customerId: id,
+              companyId: actor.companyId,
+            },
+          },
+          create: {
+            companyId: actor.companyId,
+            customerId: id,
+            stateRegistration: input.stateRegistration,
+          },
+          update: { stateRegistration: input.stateRegistration },
+        });
       await tx.auditLog.create({
         data: auditData(actor, "CUSTOMER_UPDATE", "Customer", id, {
           fields: Object.keys(input),
@@ -229,6 +348,10 @@ export async function deleteCustomer(actor: Actor, id: string) {
       where: { customerId: id, companyId: actor.companyId, deletedAt: null },
       data: { deletedAt: now, isPrimary: false },
     });
+    await tx.customerContact.updateMany({
+      where: { customerId: id, companyId: actor.companyId, isActive: true },
+      data: { isActive: false, isPrimary: false },
+    });
     await tx.auditLog.create({
       data: auditData(actor, "CUSTOMER_DELETE", "Customer", id),
     });
@@ -250,32 +373,36 @@ export async function createAddress(
   input: CreateAddressInput,
 ) {
   await getCustomer(actor.companyId, customerId);
-  return prisma.$transaction(async (tx) => {
-    if (input.isPrimary)
-      await tx.customerAddress.updateMany({
-        where: {
-          companyId: actor.companyId,
-          customerId,
-          deletedAt: null,
-          isPrimary: true,
-        },
-        data: { isPrimary: false },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      if (input.isPrimary)
+        await tx.customerAddress.updateMany({
+          where: {
+            companyId: actor.companyId,
+            customerId,
+            deletedAt: null,
+            isPrimary: true,
+          },
+          data: { isPrimary: false },
+        });
+      const address = await tx.customerAddress.create({
+        data: { ...input, companyId: actor.companyId, customerId },
+        select: addressSelect,
       });
-    const address = await tx.customerAddress.create({
-      data: { ...input, companyId: actor.companyId, customerId },
-      select: addressSelect,
+      await tx.auditLog.create({
+        data: auditData(
+          actor,
+          "CUSTOMER_ADDRESS_CREATE",
+          "CustomerAddress",
+          address.id,
+          { customerId },
+        ),
+      });
+      return address;
     });
-    await tx.auditLog.create({
-      data: auditData(
-        actor,
-        "CUSTOMER_ADDRESS_CREATE",
-        "CustomerAddress",
-        address.id,
-        { customerId },
-      ),
-    });
-    return address;
-  });
+  } catch (error) {
+    handleAddressConflict(error);
+  }
 }
 
 export async function updateAddress(
@@ -285,60 +412,72 @@ export async function updateAddress(
   input: UpdateAddressInput,
 ) {
   await getCustomer(actor.companyId, customerId);
-  return prisma.$transaction(async (tx) => {
-    const current = await tx.customerAddress.findFirst({
-      where: {
-        id: addressId,
-        companyId: actor.companyId,
-        customerId,
-        deletedAt: null,
-      },
-      select: { id: true },
-    });
-    if (!current)
-      throw new AppError(404, "ADDRESS_NOT_FOUND", "Endereço não encontrado.");
-    if (input.isPrimary)
-      await tx.customerAddress.updateMany({
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const current = await tx.customerAddress.findFirst({
         where: {
+          id: addressId,
           companyId: actor.companyId,
           customerId,
           deletedAt: null,
-          isPrimary: true,
-          id: { not: addressId },
         },
-        data: { isPrimary: false },
+        select: { id: true },
       });
-    const changed = await tx.customerAddress.updateMany({
-      where: {
-        id: addressId,
-        companyId: actor.companyId,
-        customerId,
-        deletedAt: null,
-      },
-      data: input,
+      if (!current)
+        throw new AppError(
+          404,
+          "ADDRESS_NOT_FOUND",
+          "Endereço não encontrado.",
+        );
+      if (input.isPrimary)
+        await tx.customerAddress.updateMany({
+          where: {
+            companyId: actor.companyId,
+            customerId,
+            deletedAt: null,
+            isPrimary: true,
+            id: { not: addressId },
+          },
+          data: { isPrimary: false },
+        });
+      const changed = await tx.customerAddress.updateMany({
+        where: {
+          id: addressId,
+          companyId: actor.companyId,
+          customerId,
+          deletedAt: null,
+        },
+        data: input,
+      });
+      if (!changed.count)
+        throw new AppError(
+          404,
+          "ADDRESS_NOT_FOUND",
+          "Endereço não encontrado.",
+        );
+      const address = await tx.customerAddress.findFirstOrThrow({
+        where: {
+          id: addressId,
+          companyId: actor.companyId,
+          customerId,
+          deletedAt: null,
+        },
+        select: addressSelect,
+      });
+      await tx.auditLog.create({
+        data: auditData(
+          actor,
+          "CUSTOMER_ADDRESS_UPDATE",
+          "CustomerAddress",
+          addressId,
+          { customerId, fields: Object.keys(input) },
+        ),
+      });
+      return address;
     });
-    if (!changed.count)
-      throw new AppError(404, "ADDRESS_NOT_FOUND", "Endereço não encontrado.");
-    const address = await tx.customerAddress.findFirstOrThrow({
-      where: {
-        id: addressId,
-        companyId: actor.companyId,
-        customerId,
-        deletedAt: null,
-      },
-      select: addressSelect,
-    });
-    await tx.auditLog.create({
-      data: auditData(
-        actor,
-        "CUSTOMER_ADDRESS_UPDATE",
-        "CustomerAddress",
-        addressId,
-        { customerId, fields: Object.keys(input) },
-      ),
-    });
-    return address;
-  });
+  } catch (error) {
+    handleAddressConflict(error);
+  }
 }
 
 export async function deleteAddress(

@@ -10,7 +10,7 @@ vi.mock('../src/lib/prisma.js', () => ({ prisma: db }))
 import { updateAddress, updateCustomer, type Actor } from '../src/modules/customers/customers.service.js'
 
 const actor:Actor={companyId:'company-a',branchId:'branch-a',userId:'user-a'}
-const customer={id:'customer-a',type:'INDIVIDUAL',document:'12345678901'}
+const customer={id:'customer-a',type:'INDIVIDUAL',document:'52998224725'}
 
 describe('customer service tenant enforcement',()=>{
   beforeEach(()=>{vi.clearAllMocks();db.$transaction.mockImplementation(async(callback:(tx:typeof db)=>unknown)=>callback(db))})
