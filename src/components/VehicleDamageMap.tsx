@@ -13,121 +13,123 @@ type VehicleDamageMapProps = {
   onSelect: (location: DamageLocation) => void;
 };
 
-type Region = {
+type Hotspot = {
   location: DamageLocation;
   d: string;
   marker: [number, number];
 };
 
-const regions: Region[] = [
+const hotspots: Hotspot[] = [
   {
     location: "FRONT_BUMPER",
-    d: "M64 146 C46 154 38 168 38 180 C38 192 46 206 64 214 L82 208 C76 190 76 170 82 152 Z",
-    marker: [56, 180],
+    d: "M84 187 C76 205 76 227 84 245 C106 257 132 262 162 263 L174 246 C148 244 123 239 102 228 C95 217 95 204 102 193 C123 182 148 177 174 175 L162 158 C132 159 106 164 84 176 Z",
+    marker: [105, 211],
   },
   {
     location: "HOOD",
-    d: "M82 152 C110 132 150 122 205 118 L244 118 L258 148 L258 212 L244 242 L205 242 C150 238 110 228 82 208 C76 190 76 170 82 152 Z",
-    marker: [166, 180],
+    d: "M176 176 C218 156 276 149 334 149 L373 168 L373 254 L334 273 C276 273 218 266 176 246 C165 224 165 198 176 176 Z",
+    marker: [278, 211],
   },
   {
     location: "WINDSHIELD",
-    d: "M258 148 L292 126 L322 124 L322 236 L292 234 L258 212 Z",
-    marker: [292, 180],
+    d: "M373 168 L415 148 L451 151 L451 271 L415 274 L373 254 Z",
+    marker: [416, 211],
   },
   {
     location: "ROOF",
-    d: "M322 124 C355 118 405 116 444 122 L464 143 L464 217 L444 238 C405 244 355 242 322 236 Z",
-    marker: [392, 180],
+    d: "M451 151 C491 145 545 145 585 151 L610 176 L610 246 L585 271 C545 277 491 277 451 271 Z",
+    marker: [530, 211],
   },
   {
     location: "REAR_GLASS",
-    d: "M464 143 L493 126 L521 128 L521 232 L493 234 L464 217 Z",
-    marker: [492, 180],
+    d: "M610 176 L643 158 L674 162 L674 260 L643 264 L610 246 Z",
+    marker: [643, 211],
   },
   {
     location: "TRUNK_LID",
-    d: "M521 128 C568 130 618 140 650 154 L664 168 L664 192 L650 206 C618 220 568 230 521 232 Z",
-    marker: [588, 180],
+    d: "M674 162 C713 168 753 180 782 195 L797 207 L797 215 L782 227 C753 242 713 254 674 260 Z",
+    marker: [740, 211],
   },
   {
     location: "REAR_BUMPER",
-    d: "M664 168 L690 158 C710 164 722 172 722 180 C722 188 710 196 690 202 L664 192 Z",
-    marker: [698, 180],
+    d: "M797 207 C814 201 830 200 842 205 C850 209 854 213 854 211 C854 209 850 213 842 217 C830 222 814 221 797 215 Z",
+    marker: [826, 211],
   },
   {
     location: "FRONT_LEFT_FENDER",
-    d: "M92 121 C130 100 177 88 225 88 L244 118 L205 118 C150 122 110 132 82 152 L68 143 C72 136 80 128 92 121 Z",
-    marker: [164, 110],
+    d: "M165 133 C215 105 275 95 337 95 L356 129 L334 149 C276 149 218 156 176 176 L142 158 C148 149 155 141 165 133 Z",
+    marker: [245, 125],
   },
   {
     location: "FRONT_RIGHT_FENDER",
-    d: "M92 239 C130 260 177 272 225 272 L244 242 L205 242 C150 238 110 228 82 208 L68 217 C72 224 80 232 92 239 Z",
-    marker: [164, 250],
+    d: "M165 289 C215 317 275 327 337 327 L356 293 L334 273 C276 273 218 266 176 246 L142 264 C148 273 155 281 165 289 Z",
+    marker: [245, 297],
   },
   {
     location: "FRONT_LEFT_DOOR",
-    d: "M244 88 L330 88 L322 124 L292 126 L258 148 L244 118 Z",
-    marker: [286, 105],
+    d: "M356 95 L454 95 L451 151 L415 148 L373 168 L356 129 Z",
+    marker: [405, 120],
   },
   {
     location: "FRONT_RIGHT_DOOR",
-    d: "M244 272 L330 272 L322 236 L292 234 L258 212 L244 242 Z",
-    marker: [286, 255],
+    d: "M356 327 L454 327 L451 271 L415 274 L373 254 L356 293 Z",
+    marker: [405, 302],
   },
   {
     location: "REAR_LEFT_DOOR",
-    d: "M330 88 L444 92 L444 122 C405 116 355 118 322 124 Z",
-    marker: [386, 104],
+    d: "M454 95 L585 99 L585 151 C545 145 491 145 451 151 Z",
+    marker: [520, 118],
   },
   {
     location: "REAR_RIGHT_DOOR",
-    d: "M330 272 L444 268 L444 238 C405 244 355 242 322 236 Z",
-    marker: [386, 256],
+    d: "M454 327 L585 323 L585 271 C545 277 491 277 451 271 Z",
+    marker: [520, 304],
   },
   {
     location: "REAR_LEFT_QUARTER",
-    d: "M444 92 C495 92 552 100 603 116 C628 124 645 135 656 149 L650 154 C618 140 568 130 521 128 L493 126 L464 143 L444 122 Z",
-    marker: [538, 112],
+    d: "M585 99 C636 99 691 108 738 124 C760 132 778 143 790 158 L782 195 C753 180 713 168 674 162 L643 158 L610 176 L585 151 Z",
+    marker: [682, 128],
   },
   {
     location: "REAR_RIGHT_QUARTER",
-    d: "M444 268 C495 268 552 260 603 244 C628 236 645 225 656 211 L650 206 C618 220 568 230 521 232 L493 234 L464 217 L444 238 Z",
-    marker: [538, 248],
+    d: "M585 323 C636 323 691 314 738 298 C760 290 778 279 790 264 L782 227 C753 242 713 254 674 260 L643 264 L610 246 L585 271 Z",
+    marker: [682, 294],
   },
   {
     location: "LEFT_MIRROR",
-    d: "M270 120 C260 109 260 98 269 94 C280 91 290 101 288 117 Z",
-    marker: [274, 104],
+    d: "M382 138 C371 122 370 109 379 103 C392 99 405 111 402 132 Z",
+    marker: [387, 117],
   },
   {
     location: "RIGHT_MIRROR",
-    d: "M270 240 C260 251 260 262 269 266 C280 269 290 259 288 243 Z",
-    marker: [274, 256],
+    d: "M382 284 C371 300 370 313 379 319 C392 323 405 311 402 290 Z",
+    marker: [387, 305],
   },
   {
     location: "FRONT_LEFT_WHEEL",
-    d: "M118 78 C138 70 162 70 179 79 L176 104 C159 98 139 100 123 107 Z",
-    marker: [149, 88],
+    d: "M192 111 C214 101 242 100 263 109 L259 139 C238 132 215 133 196 142 Z",
+    marker: [228, 121],
   },
   {
     location: "FRONT_RIGHT_WHEEL",
-    d: "M118 282 C138 290 162 290 179 281 L176 256 C159 262 139 260 123 253 Z",
-    marker: [149, 272],
+    d: "M192 311 C214 321 242 322 263 313 L259 283 C238 290 215 289 196 280 Z",
+    marker: [228, 301],
   },
   {
     location: "REAR_LEFT_WHEEL",
-    d: "M548 92 C568 84 592 86 610 96 L606 120 C589 114 569 114 552 120 Z",
-    marker: [579, 102],
+    d: "M678 119 C700 111 726 113 747 123 L744 153 C724 146 701 146 682 153 Z",
+    marker: [712, 132],
   },
   {
     location: "REAR_RIGHT_WHEEL",
-    d: "M548 268 C568 276 592 274 610 264 L606 240 C589 246 569 246 552 240 Z",
-    marker: [579, 258],
+    d: "M678 303 C700 311 726 309 747 299 L744 269 C724 276 701 276 682 269 Z",
+    marker: [712, 290],
   },
 ];
 
-const visualLocations = new Set<DamageLocation>(regions.map((region) => region.location));
+const visualLocations = new Set<DamageLocation>(
+  hotspots.map((hotspot) => hotspot.location),
+);
 
 export function VehicleDamageMap({
   damages,
@@ -148,70 +150,131 @@ export function VehicleDamageMap({
 
   return (
     <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="overflow-hidden rounded-xl border bg-slate-50 p-3 sm:p-5">
-        <div className="mx-auto max-w-5xl">
+      <div className="overflow-hidden rounded-xl border bg-white p-3 sm:p-5">
+        <div className="mx-auto max-w-6xl">
           <svg
-            viewBox="0 0 760 360"
+            viewBox="0 0 920 422"
             role="img"
             aria-label="Vista superior interativa do veículo para registrar avarias"
             className="h-auto w-full"
           >
             <defs>
               <filter id="vehicleShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="5" stdDeviation="5" floodOpacity="0.12" />
+                <feDropShadow dx="0" dy="8" stdDeviation="8" floodOpacity="0.1" />
               </filter>
+              <linearGradient id="glassGradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#f8fafc" />
+                <stop offset="100%" stopColor="#e2e8f0" />
+              </linearGradient>
             </defs>
 
             <g filter="url(#vehicleShadow)">
               <path
-                d="M61 143 C79 115 116 96 168 83 C224 69 289 66 357 66 L458 70 C529 72 594 82 646 101 C684 115 707 137 718 163 C724 177 724 183 718 197 C707 223 684 245 646 259 C594 278 529 288 458 290 L357 294 C289 294 224 291 168 277 C116 264 79 245 61 217 C49 199 43 191 43 180 C43 169 49 161 61 143 Z"
-                className="fill-white stroke-slate-400"
-                strokeWidth="2.5"
+                d="M69 166 C89 129 135 102 194 86 C264 66 351 61 443 61 L570 65 C650 67 726 80 790 105 C835 123 862 151 875 185 C884 207 884 215 875 237 C862 271 835 299 790 317 C726 342 650 355 570 357 L443 361 C351 361 264 356 194 336 C135 320 89 293 69 256 C55 233 49 220 49 211 C49 202 55 189 69 166 Z"
+                fill="#ffffff"
+                stroke="#64748b"
+                strokeWidth="3"
               />
 
-              {regions.map((region) => {
-                const count = countFor(region.location);
-                const label = locationLabels[region.location];
+              <path
+                d="M174 175 C218 151 276 142 336 142 L374 164 L374 258 L336 280 C276 280 218 271 174 247 C161 224 161 198 174 175 Z"
+                fill="#f8fafc"
+                stroke="#94a3b8"
+                strokeWidth="2"
+              />
+              <path
+                d="M374 164 L414 143 L452 147 L452 275 L414 279 L374 258 Z"
+                fill="url(#glassGradient)"
+                stroke="#94a3b8"
+                strokeWidth="2"
+              />
+              <path
+                d="M452 147 C491 141 546 141 586 147 L611 174 L611 248 L586 275 C546 281 491 281 452 275 Z"
+                fill="#f8fafc"
+                stroke="#94a3b8"
+                strokeWidth="2"
+              />
+              <path
+                d="M611 174 L643 155 L674 160 L674 262 L643 267 L611 248 Z"
+                fill="url(#glassGradient)"
+                stroke="#94a3b8"
+                strokeWidth="2"
+              />
+              <path
+                d="M674 160 C716 167 756 179 785 194 L801 207 L801 215 L785 228 C756 243 716 255 674 262 Z"
+                fill="#f8fafc"
+                stroke="#94a3b8"
+                strokeWidth="2"
+              />
+
+              <path d="M139 155 C145 142 155 132 169 122 C217 96 278 88 338 88" fill="none" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M139 267 C145 280 155 290 169 300 C217 326 278 334 338 334" fill="none" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M454 95 L454 327" fill="none" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M585 99 L585 323" fill="none" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M405 147 C415 172 419 192 419 211 C419 230 415 250 405 275" fill="none" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M643 155 C635 176 631 195 631 211 C631 227 635 246 643 267" fill="none" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M502 158 C527 151 554 151 578 157" fill="none" stroke="#e2e8f0" strokeWidth="2" />
+              <path d="M502 264 C527 271 554 271 578 265" fill="none" stroke="#e2e8f0" strokeWidth="2" />
+
+              <g aria-hidden="true">
+                <ellipse cx="228" cy="121" rx="31" ry="13" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
+                <ellipse cx="228" cy="301" rx="31" ry="13" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
+                <ellipse cx="712" cy="132" rx="31" ry="13" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
+                <ellipse cx="712" cy="290" rx="31" ry="13" fill="#e2e8f0" stroke="#64748b" strokeWidth="2" />
+                <circle cx="228" cy="121" r="7" fill="#ffffff" stroke="#64748b" strokeWidth="2" />
+                <circle cx="228" cy="301" r="7" fill="#ffffff" stroke="#64748b" strokeWidth="2" />
+                <circle cx="712" cy="132" r="7" fill="#ffffff" stroke="#64748b" strokeWidth="2" />
+                <circle cx="712" cy="290" r="7" fill="#ffffff" stroke="#64748b" strokeWidth="2" />
+              </g>
+
+              {hotspots.map((hotspot) => {
+                const count = countFor(hotspot.location);
+                const label = locationLabels[hotspot.location];
                 return (
                   <g
-                    key={region.location}
+                    key={hotspot.location}
                     role="button"
                     tabIndex={disabled ? -1 : 0}
                     aria-disabled={disabled}
                     aria-label={`${label}${count ? `, ${count} ${count === 1 ? "avaria registrada" : "avarias registradas"}` : ", sem avarias registradas"}`}
-                    onClick={() => activate(region.location)}
+                    onClick={() => activate(hotspot.location)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        activate(region.location);
+                        activate(hotspot.location);
                       }
                     }}
                     className={disabled ? "cursor-not-allowed" : "cursor-pointer outline-none"}
                   >
                     <path
-                      d={region.d}
-                      className={
-                        count
-                          ? "fill-amber-100 stroke-amber-500 transition hover:fill-amber-200 focus:fill-amber-200"
-                          : "fill-white stroke-slate-400 transition hover:fill-brand-50 focus:fill-brand-50"
-                      }
-                      strokeWidth={count ? 2.4 : 1.6}
+                      d={hotspot.d}
+                      fill={count ? "rgba(250, 204, 21, 0.30)" : "rgba(255,255,255,0.001)"}
+                      stroke={count ? "#eab308" : "rgba(148,163,184,0.28)"}
+                      strokeWidth={count ? 3 : 1.4}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <path
+                      d={hotspot.d}
+                      fill="transparent"
+                      stroke="transparent"
+                      strokeWidth="10"
                       vectorEffect="non-scaling-stroke"
                     />
                     {count > 0 && (
                       <g aria-hidden="true">
                         <circle
-                          cx={region.marker[0]}
-                          cy={region.marker[1]}
-                          r="11"
-                          className="fill-amber-500 stroke-white"
-                          strokeWidth="2"
+                          cx={hotspot.marker[0]}
+                          cy={hotspot.marker[1]}
+                          r="13"
+                          fill="#facc15"
+                          stroke="#ffffff"
+                          strokeWidth="3"
                         />
                         <text
-                          x={region.marker[0]}
-                          y={region.marker[1] + 4}
+                          x={hotspot.marker[0]}
+                          y={hotspot.marker[1] + 4}
                           textAnchor="middle"
-                          className="fill-black text-[11px] font-bold"
+                          className="fill-black text-[12px] font-bold"
                         >
                           {count > 9 ? "9+" : count}
                         </text>
@@ -221,37 +284,13 @@ export function VehicleDamageMap({
                   </g>
                 );
               })}
-
-              <g aria-hidden="true" className="pointer-events-none fill-none stroke-slate-300">
-                <path d="M205 118 C221 102 237 90 257 82" />
-                <path d="M205 242 C221 258 237 270 257 278" />
-                <path d="M292 126 C302 145 306 161 306 180 C306 199 302 215 292 234" />
-                <path d="M493 126 C485 145 482 161 482 180 C482 199 485 215 493 234" />
-                <path d="M82 152 C67 158 57 168 55 180 C57 192 67 202 82 208" />
-                <path d="M650 154 C671 160 684 169 688 180 C684 191 671 200 650 206" />
-                <path d="M351 132 C377 126 410 126 435 132" />
-                <path d="M351 228 C377 234 410 234 435 228" />
-              </g>
-
-              <g aria-hidden="true" className="pointer-events-none">
-                <ellipse cx="143" cy="93" rx="24" ry="10" className="fill-slate-100 stroke-slate-400" />
-                <ellipse cx="143" cy="267" rx="24" ry="10" className="fill-slate-100 stroke-slate-400" />
-                <ellipse cx="578" cy="107" rx="24" ry="10" className="fill-slate-100 stroke-slate-400" />
-                <ellipse cx="578" cy="253" rx="24" ry="10" className="fill-slate-100 stroke-slate-400" />
-                <circle cx="143" cy="93" r="5" className="fill-white stroke-slate-400" />
-                <circle cx="143" cy="267" r="5" className="fill-white stroke-slate-400" />
-                <circle cx="578" cy="107" r="5" className="fill-white stroke-slate-400" />
-                <circle cx="578" cy="253" r="5" className="fill-white stroke-slate-400" />
-              </g>
             </g>
 
-            <text x="42" y="338" className="fill-slate-400 text-[12px] font-semibold">
-              DIANTEIRA
-            </text>
-            <path d="M42 320 L42 330 L64 325 Z" className="fill-slate-400" aria-hidden="true" />
-            <text x="664" y="338" className="fill-slate-400 text-[12px] font-semibold">
-              TRASEIRA
-            </text>
+            <g aria-hidden="true" className="fill-slate-400">
+              <path d="M78 384 L78 396 L102 390 Z" />
+              <text x="108" y="395" className="text-[13px] font-semibold">DIANTEIRA</text>
+              <text x="744" y="395" className="text-[13px] font-semibold">TRASEIRA</text>
+            </g>
           </svg>
         </div>
 
@@ -260,7 +299,7 @@ export function VehicleDamageMap({
             <span className="size-3 rounded-full border border-slate-400 bg-white" /> Sem avaria
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <AlertTriangle className="size-3.5 text-amber-600" /> Área com avaria
+            <AlertTriangle className="size-3.5 text-yellow-600" /> Área com avaria
           </span>
           <span className="text-slate-500">Clique diretamente na peça do veículo.</span>
         </div>
@@ -284,7 +323,7 @@ export function VehicleDamageMap({
               >
                 <span>{locationLabels[location]}</span>
                 {count > 0 && (
-                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                  <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800">
                     {count}
                   </span>
                 )}
