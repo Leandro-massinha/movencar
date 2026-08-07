@@ -1,0 +1,206 @@
+# MovenCar — Progresso de Desenvolvimento
+
+Última atualização: 07/08/2026
+
+## Objetivo do projeto
+
+MovenCar é um SaaS multiempresa para gestão completa de oficinas mecânicas, com isolamento rigoroso de dados por empresa e filial.
+
+Fluxo principal planejado:
+
+Cliente → Veículo → Atendimento → Check-in → Checklist → Orçamento → Aprovação → Ordem de Serviço → Estoque/Peças → Financeiro → Entrega → Revisão futura → CRM
+
+## Situação atual
+
+### Frontend
+
+- React + TypeScript + Vite + Tailwind CSS.
+- Layout visual aprovado no padrão MovenCar.
+- Identidade principal: preto, amarelo, roxo e verde-limão.
+- Sidebar compacta 220px/72px.
+- Header com breadcrumb, oficina, filial, busca global, notificações e usuário.
+- Dashboard reorganizado em grade responsiva de 12 colunas.
+- Seis KPIs compactos.
+- Mini Kanban, agenda, movimentações, estoque baixo e retornos.
+- Ordens recentes, gráfico de faturamento, compras e contas a receber.
+- Rotas demonstrativas existentes preservadas.
+
+### Backend
+
+- Node.js + TypeScript + Express.
+- Prisma ORM + PostgreSQL.
+- Estrutura de autenticação.
+- Multiempresa preparada com Company e Branch.
+- Usuários, papéis e permissões.
+- Sessão única por usuário.
+- Revogação das sessões anteriores no novo login.
+- Refresh token salvo em cookie HttpOnly.
+- Refresh token armazenado no banco apenas por hash.
+- Access token de curta duração.
+- Rate limiting no login/refresh.
+- Helmet.
+- CORS controlado.
+- Logs estruturados com Pino.
+- AuditLog.
+- Health check em /api/health.
+- Middleware authenticate consulta UserSession no banco em toda requisição protegida, permitindo queda imediata da sessão anterior.
+- app.set('trust proxy', 1) configurado para operação atrás do Nginx.
+
+### Infraestrutura
+
+- Projeto em /home/leandro/movencar.
+- Git configurado.
+- Repositório GitHub: Leandro-massinha/movencar.
+- Branches principais:
+  - main: versão estável.
+  - develop: integração de desenvolvimento.
+- Fluxo adotado: feature/* → develop → main.
+- Backend executado pelo PM2 como movencar-api.
+- Porta interna da API: 127.0.0.1:3334.
+- PM2 configurado para inicialização automática via systemd.
+- Nginx configurado para o domínio movencar.com.br.
+- Frontend servido pelo Nginx a partir de /home/leandro/movencar/dist.
+- /api proxy para 127.0.0.1:3334.
+- HTTPS ativo com Let's Encrypt/Certbot.
+- https://movencar.com.br responde HTTP 200.
+- https://movencar.com.br/api/health responde HTTP 200.
+
+## Git / histórico relevante
+
+Commit inicial:
+
+- 6525b53 — chore: versão inicial do MovenCar
+
+Ajuste de produção:
+
+- 47fa89d — fix: configura trust proxy para nginx
+
+Pull Request #1:
+
+- feature/backend-foundation → develop
+- Fundido com sucesso.
+
+## Regras arquiteturais obrigatórias
+
+### Multiempresa
+
+1. Nunca confiar em companyId vindo do frontend.
+2. companyId deve ser obtido da sessão autenticada.
+3. Toda consulta de dados empresariais deve filtrar por companyId.
+4. branchId deve ser validado contra a empresa autenticada.
+5. IDs de outras empresas não podem revelar existência de dados.
+6. Testes de isolamento devem existir para cada módulo sensível.
+
+### Sessão única
+
+1. Novo login revoga sessões anteriores do mesmo usuário/empresa.
+2. Toda requisição protegida valida sessionId no banco.
+3. Sessão revogada retorna 401 SESSION_REVOKED.
+4. Frontend deve encerrar autenticação e redirecionar para tela de sessão encerrada.
+5. Produção deve usar cookie HttpOnly + Secure + SameSite apropriado.
+
+### Git
+
+Não trabalhar diretamente na main.
+
+Fluxo:
+
+feature/nome-da-funcionalidade → develop → main
+
+Cada módulo novo deve:
+
+1. nascer em uma branch feature/*;
+2. passar por lint, testes e build;
+3. ser enviado ao GitHub;
+4. entrar em develop via Pull Request;
+5. só chegar à main depois de validado.
+
+## Pontos de segurança ainda a revisar
+
+Antes do lançamento comercial, revisar:
+
+- unicidade de User por companyId + email;
+- garantia de que defaultBranchId pertence à mesma Company;
+- unicidade/estratégia de Company.document;
+- modelagem de Role global com companyId nulo;
+- sessionId em AuditLog;
+- separação de SESSION_REVOKED e SESSION_EXPIRED;
+- logout quando access token estiver expirado;
+- limpeza do cookie ao revogar a própria sessão;
+- avaliação de PostgreSQL Row-Level Security;
+- tsconfig.build.json para build de produção apenas de src;
+- política de backup e restauração;
+- testes automáticos de isolamento multiempresa para todos os módulos.
+
+## Direção de desenvolvimento
+
+### Próxima etapa: Clientes + Veículos
+
+Motivo: estes dois cadastros são dependências centrais dos demais módulos.
+
+Sequência prevista:
+
+1. Clientes
+2. Veículos
+3. Histórico completo do veículo
+4. Atendimento e Agenda
+5. Check-in, Checklist e Pátio
+6. Orçamentos e Aprovações
+7. Ordens de Serviço
+8. Serviços, Técnicos e Apontamentos
+9. Estoque e Compras
+10. Inventário de Ferramentas e Manutenção Preventiva
+11. Financeiro e Centro de Custos
+12. Revisões e Garantias
+13. CRM e Comunicação
+14. Relatórios e Indicadores
+15. Auditoria, segurança avançada e hardening final
+
+## Direção para o Codex quando voltar
+
+O Codex NÃO deve recriar o projeto, trocar o design ou refazer a fundação.
+
+Antes de qualquer alteração, deve ler:
+
+- README.md
+- AGENTS.md
+- docs/ARCHITECTURE.md
+- docs/BACKEND_ARCHITECTURE.md
+- docs/MULTI_TENANCY.md
+- docs/AUTHENTICATION.md
+- docs/SESSION_POLICY.md
+- docs/SECURITY.md
+- docs/DEVELOPMENT_PROGRESS.md
+
+Regras para o Codex:
+
+1. Preservar tudo que já funciona.
+2. Trabalhar a partir de develop.
+3. Criar uma branch feature/* para cada módulo.
+4. Não alterar a identidade visual aprovada sem solicitação.
+5. Não confiar em IDs de empresa enviados pelo frontend.
+6. Aplicar tenant filtering em todas as queries.
+7. Criar testes de acesso cruzado entre empresas.
+8. Rodar lint, testes e build antes de concluir.
+9. Atualizar este DEVELOPMENT_PROGRESS.md ao final de cada etapa.
+10. Informar arquivos alterados, migrations, endpoints, testes e pendências.
+
+## Próxima tarefa concreta
+
+Criar o módulo funcional de Clientes com arquitetura multiempresa e API real, sem ainda implementar Veículos no mesmo passo.
+
+Critérios iniciais para Clientes:
+
+- schema Prisma;
+- migration;
+- validação Zod;
+- repository/service/controller/routes;
+- filtro obrigatório por companyId;
+- suporte a filial quando aplicável;
+- CRUD seguro;
+- soft delete;
+- busca e paginação;
+- permissions customers.view/create/update/delete;
+- AuditLog;
+- testes de isolamento Empresa A x Empresa B;
+- integração com frontend apenas depois da API estar validada.
