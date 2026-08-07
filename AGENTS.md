@@ -11,3 +11,11 @@ Antes de editar UI, leia `DESIGN_SYSTEM.md`. Reutilize `src/components/ui.tsx`; 
 Toda experiência visível ao usuário final do MovenCar deve utilizar Português do Brasil (pt-BR) por padrão. Código interno, modelos, APIs e enums podem permanecer em inglês.
 
 Toda nova página, modal, mensagem, botão, tabela, filtro e validação deve seguir o glossário oficial em `docs/PRODUCT_LANGUAGE.md`.
+
+Nenhuma entrada de veículo deve assumir ausência de avarias ou funcionamento correto de componente não verificado. O MovenCar deve distinguir explicitamente OK, anormalidade, não verificado e não aplicável.
+
+Relato do cliente, condição observada no Check-in, resultado do PDC, resultado do teste de rodagem e diagnóstico técnico são registros distintos e nunca devem sobrescrever uns aos outros.
+
+Todo veículo que entra fisicamente para atendimento deve possuir Ordem de Serviço, mesmo quando o atendimento terminar apenas em diagnóstico, avaliação ou orçamento não aprovado.
+
+Registros documentais confirmados pelo cliente devem ser versionados e não podem ser alterados silenciosamente.

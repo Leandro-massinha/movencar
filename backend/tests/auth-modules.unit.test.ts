@@ -20,4 +20,10 @@ describe('/auth/me module entitlements',()=>{
     const result=await currentUser('user-b','company-b')
     expect(result.tenant.enabledModules).toEqual([])
   })
+  it('does not advertise workshop without both customers and vehicles',async()=>{
+    db.user.findFirstOrThrow.mockResolvedValue({id:'user-c',companyId:'company-c',name:'Caio',email:'caio@example.com',defaultBranchId:'branch-c',company:{tradeName:'Empresa C'},defaultBranch:{name:'Matriz'},roles:[]})
+    db.companyModule.findMany.mockResolvedValue([{module:{code:'workshop'}},{module:{code:'customers'}}])
+    const result=await currentUser('user-c','company-c')
+    expect(result.tenant.enabledModules).toEqual(['customers'])
+  })
 })

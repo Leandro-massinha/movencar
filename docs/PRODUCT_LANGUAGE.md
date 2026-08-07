@@ -40,6 +40,11 @@ Português do Brasil (`pt-BR`) é o idioma oficial da experiência do usuário. 
 | Damage                        | Avaria                            |
 | Attachment                    | Anexo                             |
 | Checklist Template            | Modelo de Lista de Verificação    |
+| PDC                           | PDC — Primeiro Diagnóstico do Carro |
+| Initial Road Test             | Teste de rodagem inicial          |
+| Final Road Test               | Teste de rodagem final            |
+| Customer Confirmation         | Confirmação do cliente            |
+| Amendment                     | Retificação                       |
 
 CRM, PIX, WhatsApp, NF-e, NFC-e, NFS-e, RENAVAM e Check-in permanecem por serem termos consolidados. `Checklist` é apresentado como “Lista de Verificação” em navegação destinada ao usuário geral.
 

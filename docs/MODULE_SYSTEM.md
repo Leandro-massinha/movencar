@@ -21,6 +21,10 @@ O histórico básico do veículo acompanha o entitlement `vehicles`; `vehicle_hi
 
 Customer 360° e Vehicle 360° são capacidades dos módulos existentes `customers` e `vehicles`. Propriedade e odômetro acompanham Vehicles e reutilizam suas permissões. Atendimento, relato e Check-in pertencerão a `workshop`, que dependerá de Customers e Vehicles; não será criado um módulo comercial por entidade.
 
+WorkOrder, CustomerConcern e VehicleCheckIn usam o módulo existente `workshop`. PDC e testes de rodagem também pertencerão a Workshop quando implementados. A fundação não cria novos produtos comerciais nem ativa módulos além das associações já existentes.
+
+Workshop depende de Customers e Vehicles no gate central. Se qualquer dependência estiver indisponível, Workshop não é anunciado em `/auth/me` nem libera as rotas de entrada.
+
 ## Uso em novas rotas
 
 Cada router comercial deve aplicar, após `authenticate`, um único gate de módulo e depois permissões por endpoint. Regras de datas/status ficam em `modules/platform/module-gate.ts`, não em `if`s locais. Rotas Core (autenticação, sessão e coleta mínima de auditoria) não dependem de assinatura.

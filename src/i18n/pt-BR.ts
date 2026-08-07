@@ -38,6 +38,12 @@ export const historyEventLabels: Record<HistoryEventType, string> = {
   NOTE: "Anotação",
   OWNER_CHANGED: "Alteração de proprietário",
   GENERAL: "Evento geral",
+  WORK_ORDER_OPENED: "Ordem de Serviço aberta",
+  CUSTOMER_CONCERN_RECORDED: "Relato do cliente registrado",
+  CHECK_IN_COMPLETED: "Check-in concluído",
+  WORK_ORDER_CLOSED_NO_SERVICE: "Ordem de Serviço encerrada sem serviço",
+  WORK_ORDER_COMPLETED: "Ordem de Serviço concluída",
+  WORK_ORDER_CANCELLED: "Ordem de Serviço cancelada",
 };
 export const moduleStatusLabels = {
   ACTIVE: "Ativo",
@@ -64,3 +70,34 @@ export const moduleLabels: Record<string, string> = {
   yard: "Pátio",
   "tools-assets": "Ferramentas e ativos",
 };
+
+export const workOrderPurposeLabels = {
+  DIAGNOSTIC: "Diagnóstico",
+  EVALUATION: "Avaliação",
+  MAINTENANCE: "Manutenção",
+  REPAIR: "Reparo",
+  INSPECTION: "Inspeção",
+  REVISION: "Revisão",
+  WARRANTY: "Garantia",
+  COURTESY: "Cortesia",
+  RETURN: "Retorno",
+  OTHER: "Outro",
+} as const;
+export const workOrderStatusLabels = {
+  OPEN: "Aberta",
+  CANCELLED: "Cancelada",
+  CLOSED_NO_SERVICE: "Encerrada sem serviço",
+  CLOSED: "Encerrada",
+} as const;
+export const checkInStatusLabels = {
+  DRAFT: "Rascunho",
+  COMPLETED: "Concluído",
+  CONFIRMED: "Confirmado",
+  CANCELLED: "Cancelado",
+} as const;
+export const inspectionStatusLabels = {
+  OK: "OK",
+  ISSUE: "Anormalidade",
+  NOT_CHECKED: "Não verificado",
+  NOT_APPLICABLE: "Não aplicável",
+} as const;

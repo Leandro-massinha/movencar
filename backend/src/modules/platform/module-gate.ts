@@ -4,6 +4,7 @@ import { AppError } from "../../lib/errors.js";
 
 const moduleDependencies: Record<string, string[]> = {
   vehicles: ["customers"],
+  workshop: ["customers", "vehicles"],
 };
 const requiredCodes = (code: string) => [
   code,

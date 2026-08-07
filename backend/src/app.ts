@@ -13,6 +13,7 @@ import { tenantRouter } from "./modules/tenancy/tenant.routes.js";
 import { customersRouter } from "./modules/customers/customers.routes.js";
 import { vehiclesRouter } from "./modules/vehicles/vehicles.routes.js";
 import { vehicleHistoryRouter } from "./modules/vehicle-history/vehicle-history.routes.js";
+import { workOrdersRouter } from "./modules/work-orders/work-orders.routes.js";
 
 export function createApp() {
   const app = express();
@@ -55,6 +56,7 @@ export function createApp() {
   app.use("/api/customers", customersRouter);
   app.use("/api/vehicles/:vehicleId/history", vehicleHistoryRouter);
   app.use("/api/vehicles", vehiclesRouter);
+  app.use("/api/work-orders", workOrdersRouter);
   app.use("/api", tenantRouter);
   app.use((_req, _res, next) =>
     next(new AppError(404, "NOT_FOUND", "Rota não encontrada.")),

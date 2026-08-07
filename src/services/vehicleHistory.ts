@@ -5,7 +5,13 @@ export type HistoryEventType =
   | "MILEAGE_RECORDED"
   | "NOTE"
   | "OWNER_CHANGED"
-  | "GENERAL";
+  | "GENERAL"
+  | "WORK_ORDER_OPENED"
+  | "CUSTOMER_CONCERN_RECORDED"
+  | "CHECK_IN_COMPLETED"
+  | "WORK_ORDER_CLOSED_NO_SERVICE"
+  | "WORK_ORDER_COMPLETED"
+  | "WORK_ORDER_CANCELLED";
 export interface HistoryEvent {
   id: string;
   eventType: HistoryEventType;

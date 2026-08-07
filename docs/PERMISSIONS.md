@@ -12,7 +12,9 @@ O historico basico compartilha o entitlement comercial `vehicles`; ele nao possu
 
 O frontend oculta navegacao e protege rotas para UX. O backend continua sendo a autoridade e deve validar usuario, tenant, filial, recurso e acao em toda requisicao.
 
-Propriedade e odômetro fazem parte de Vehicles: as consultas usam `vehicles.view` e a troca atual continua protegida por `vehicles.update`. Quando Atendimento e Check-in forem funcionais, usarão o módulo `workshop` e o conjunto mínimo `service_visits.view/create/update/close`, `checkins.view/create/update/complete/confirm` e `customer_concerns.create`. Essas permissões planejadas não foram inseridas no seed antes das rotas existirem.
+Propriedade e odômetro fazem parte de Vehicles: as consultas usam `vehicles.view` e a troca atual continua protegida por `vehicles.update`. Atendimento presencial, OS, relato e Check-in pertencem ao módulo `workshop`.
+
+A fundação de entrada implementa `work_orders.view`, `work_orders.create`, `work_orders.close`, `customer_concerns.create`, `checkins.view`, `checkins.create`, `checkins.update` e `checkins.complete`, sempre após `requireModule('workshop')`. Não existem ainda `work_orders.update` nem `checkins.confirm`, pois não há operação funcional segura correspondente. PDC e road test permanecem sem permissões até suas APIs existirem.
 
 ## Modulo versus permissao
 

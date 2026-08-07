@@ -2,6 +2,8 @@
 
 O prontuário é uma projeção de leitura centrada em Vehicle, não uma tabela única. Ele compõe identificação, propriedade, odômetro, timeline, atendimentos, relatos, check-ins, inspeções, diagnósticos, documentos, componentes, garantias e transações mantendo cada domínio como fonte de verdade.
 
+A fundação de entrada adiciona WorkOrder como registro obrigatório da presença física, CustomerConcern como relato original imutável e VehicleCheckIn como condição observável em rascunho/conclusão. A timeline recebe somente eventos resumidos; os agregados preservam o detalhe.
+
 ## Arquivos e fotos
 
 `FileAsset` e `Attachment` foram preparados conceitualmente e adiados até existir upload autorizado. `FileAsset` guarda tenant, uploader, nome original apenas como metadata, MIME validado pelo conteúdo, tamanho, storage key opaca gerada pelo backend, checksum, estado e data. `Attachment` liga o arquivo a um recurso autorizado por referência tenant-safe. Binários ficam em storage privado exclusivo do MovenCar; download revalida tenant e permissão do pai. Não haverá path fornecido pelo cliente, URL pública previsível ou tabela de foto por módulo.

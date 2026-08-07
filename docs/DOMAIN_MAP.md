@@ -5,7 +5,7 @@
 | Core | empresa, filiais, usuários, auth, sessões, papéis, permissões, módulos, assinatura, gate, auditoria, arquivos, eventos e integrações | nenhuma comercial |
 | Customers | cadastro canônico, endereços, contatos, relações, preferências, consentimentos, tags e origens | Core |
 | Vehicles | veículo canônico, propriedade temporal, odômetro, timeline, componentes e prontuário | Core, Customers |
-| Workshop | agenda, recepção, check-in, checklist, diagnóstico, orçamento, aprovação, OS, execução, técnicos, boxes e saída | Customers, Vehicles, Catalog |
+| Workshop | entrada, OS, relato, check-in, PDC, teste de rodagem, diagnóstico, orçamento, aprovação, execução, técnicos, boxes e saída | Customers, Vehicles; Catalog quando houver itens |
 | Catalog | produtos, serviços, categorias, marcas e listas de preço | Core |
 | Inventory | depósitos, saldos, locais, movimentos, reservas, transferências, inventários, perdas, lotes e séries | Catalog |
 | Purchasing | fornecedores, solicitações, cotações, pedidos, recebimentos e devoluções | Catalog, Inventory |
@@ -29,3 +29,5 @@
 Dependências inversas e circulares são proibidas. Integrações transversais devem usar interfaces ou eventos. Files é uma capacidade Core, não uma tabela de foto por módulo.
 
 Workshop será dono de ServiceVisit, CustomerConcern, Check-in, checklist, observações e diagnóstico. Customer e Vehicle não importam Workshop; suas visões 360° consultam projeções/fachadas de leitura.
+
+WorkOrder é a raiz operacional implementada para entrada física. ServiceVisit futuro representa interação mais ampla e será opcional para OS, evitando duas entidades com a mesma responsabilidade.

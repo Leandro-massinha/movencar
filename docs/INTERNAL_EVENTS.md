@@ -8,6 +8,8 @@ Exemplos futuros: `WORK_ORDER_COMPLETED`, `SALE_COMPLETED`, `PAYMENT_RECEIVED`, 
 
 O prontuário acrescenta contratos planejados `VEHICLE_OWNER_CHANGED`, `ODOMETER_RECORDED`, `SERVICE_VISIT_OPENED`, `CUSTOMER_CONCERN_RECORDED`, `CHECK_IN_STARTED`, `CHECK_IN_COMPLETED` e `CHECK_IN_CONFIRMED`. O produtor deve fornecer chave idempotente de origem. Atualização da projeção corrente, leitura de odômetro e evento essencial de timeline permanecem na mesma transação.
 
+A fundação de entrada implementa na timeline `WORK_ORDER_OPENED`, `CUSTOMER_CONCERN_RECORDED`, `CHECK_IN_COMPLETED`, `WORK_ORDER_CLOSED_NO_SERVICE` e `WORK_ORDER_CANCELLED`. Abertura usa chave idempotente por empresa; conclusão e encerramento usam transição condicional para não duplicar efeitos.
+
 ## Política de consistência
 
 - efeito obrigatório para a consistência da operação permanece na mesma transação;
