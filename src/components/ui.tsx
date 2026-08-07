@@ -1,5 +1,5 @@
 import { Search, X, ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
+import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 import { cn } from '../lib/cn'
 
 export function Button({ className, variant = 'primary', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary'|'secondary'|'danger'|'ghost' }) {
@@ -8,6 +8,7 @@ export function Button({ className, variant = 'primary', ...props }: ButtonHTMLA
 export function IconButton({ label, children, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string; children: ReactNode }) { return <button title={label} aria-label={label} className={cn('inline-flex size-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50', className)} {...props}>{children}</button> }
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) { return <input className={cn('h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500', className)} {...props} /> }
 export function Select({ className, ...props }: SelectHTMLAttributes<HTMLSelectElement>) { return <select className={cn('h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-brand-500', className)} {...props}/> }
+export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) { return <textarea className={cn('min-h-24 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500', className)} {...props}/> }
 export function SearchInput(props: InputHTMLAttributes<HTMLInputElement>) { return <label className="relative block"><Search className="absolute left-3 top-2.5 size-5 text-slate-400"/><Input className="pl-10" {...props}/></label> }
 export function Badge({ children, tone='neutral' }: { children: ReactNode; tone?: 'success'|'warning'|'danger'|'info'|'neutral' }) { return <span className={cn('inline-flex min-h-6 items-center rounded-full px-2.5 text-xs font-semibold', tone==='success'&&'bg-emerald-100 text-emerald-700', tone==='warning'&&'bg-amber-100 text-amber-800', tone==='danger'&&'bg-red-100 text-red-700', tone==='info'&&'bg-blue-100 text-blue-700', tone==='neutral'&&'bg-slate-100 text-slate-600')}>{children}</span> }
 export function Card({ children, className }: { children: ReactNode; className?: string }) { return <section className={cn('rounded-lg border border-slate-200 bg-white shadow-panel', className)}>{children}</section> }

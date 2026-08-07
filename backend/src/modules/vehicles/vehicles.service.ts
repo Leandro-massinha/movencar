@@ -1,24 +1,291 @@
-import type { Prisma } from '@prisma/client'
-import { Prisma as PrismaRuntime } from '@prisma/client'
-import { prisma } from '../../lib/prisma.js'
-import { AppError } from '../../lib/errors.js'
-import type { CreateVehicleInput,ListVehiclesInput,UpdateVehicleInput } from './vehicles.schemas.js'
+import type { Prisma } from "@prisma/client";
+import { Prisma as PrismaRuntime } from "@prisma/client";
+import { prisma } from "../../lib/prisma.js";
+import { AppError } from "../../lib/errors.js";
+import type {
+  CreateVehicleInput,
+  ListVehiclesInput,
+  UpdateVehicleInput,
+} from "./vehicles.schemas.js";
 
-export type VehicleActor={companyId:string;branchId:string;userId:string;ipAddress?:string;userAgent?:string}
-const vehicleSelect={id:true,customerId:true,originBranchId:true,status:true,plate:true,renavam:true,chassis:true,brand:true,model:true,version:true,yearManufacture:true,yearModel:true,color:true,fuelType:true,transmission:true,engine:true,enginePower:true,bodyType:true,doors:true,currentMileage:true,notes:true,createdAt:true,updatedAt:true,customer:{select:{id:true,name:true,document:true,phone:true}},originBranch:{select:{id:true,code:true,name:true}}} satisfies Prisma.VehicleSelect
-const auditData=(actor:VehicleActor,action:string,entityId:string,metadata?:Prisma.InputJsonValue)=>({companyId:actor.companyId,branchId:actor.branchId,actorUserId:actor.userId,action,entityType:'Vehicle',entityId,metadata,ipAddress:actor.ipAddress,userAgent:actor.userAgent})
+export type VehicleActor = {
+  companyId: string;
+  branchId: string;
+  userId: string;
+  ipAddress?: string;
+  userAgent?: string;
+};
+const vehicleSelect = {
+  id: true,
+  customerId: true,
+  originBranchId: true,
+  status: true,
+  plate: true,
+  renavam: true,
+  chassis: true,
+  brand: true,
+  model: true,
+  version: true,
+  yearManufacture: true,
+  yearModel: true,
+  color: true,
+  fuelType: true,
+  transmission: true,
+  engine: true,
+  enginePower: true,
+  bodyType: true,
+  doors: true,
+  currentMileage: true,
+  notes: true,
+  createdAt: true,
+  updatedAt: true,
+  customer: { select: { id: true, name: true, document: true, phone: true } },
+  originBranch: { select: { id: true, code: true, name: true } },
+} satisfies Prisma.VehicleSelect;
+const auditData = (
+  actor: VehicleActor,
+  action: string,
+  entityId: string,
+  metadata?: Prisma.InputJsonValue,
+) => ({
+  companyId: actor.companyId,
+  branchId: actor.branchId,
+  actorUserId: actor.userId,
+  action,
+  entityType: "Vehicle",
+  entityId,
+  metadata,
+  ipAddress: actor.ipAddress,
+  userAgent: actor.userAgent,
+});
 
-async function assertCustomer(companyId:string,customerId:string){const customer=await prisma.customer.findFirst({where:{id:customerId,companyId,deletedAt:null,status:'ACTIVE'},select:{id:true}});if(!customer)throw new AppError(404,'CUSTOMER_NOT_FOUND','Cliente nao encontrado ou indisponivel.')}
-async function assertBranch(companyId:string,branchId?:string|null){if(!branchId)return;const branch=await prisma.branch.findFirst({where:{id:branchId,companyId,deletedAt:null,status:'ACTIVE'},select:{id:true}});if(!branch)throw new AppError(404,'BRANCH_NOT_FOUND','Filial nao encontrada.')}
-function handleConflict(error:unknown):never{if(error instanceof PrismaRuntime.PrismaClientKnownRequestError&&error.code==='P2002'){const target=String((error.meta as {target?:unknown}|undefined)?.target??'');throw new AppError(409,target.toLowerCase().includes('chassis')?'VEHICLE_CHASSIS_EXISTS':'VEHICLE_PLATE_EXISTS',target.toLowerCase().includes('chassis')?'Chassi ja cadastrado nesta empresa.':'Placa ja cadastrada nesta empresa.')}throw error}
-
-export async function listVehicles(companyId:string,input:ListVehiclesInput){
-  const normalized=input.search?.toUpperCase().replace(/[^A-Z0-9]/g,'')
-  const where:Prisma.VehicleWhereInput={companyId,deletedAt:null,status:input.status,customerId:input.customerId,originBranchId:input.branchId,fuelType:input.fuelType,brand:input.brand?{contains:input.brand,mode:'insensitive'}:undefined,model:input.model?{contains:input.model,mode:'insensitive'}:undefined,...(input.search?{OR:[{plate:{contains:normalized||input.search}},{brand:{contains:input.search,mode:'insensitive'}},{model:{contains:input.search,mode:'insensitive'}},{version:{contains:input.search,mode:'insensitive'}},{chassis:{contains:normalized||input.search}},{renavam:{contains:input.search.replace(/\D/g,'')||input.search}},{customer:{is:{companyId,deletedAt:null,name:{contains:input.search,mode:'insensitive'}}}}]}:{})}
-  const [data,total]=await prisma.$transaction([prisma.vehicle.findMany({where,select:vehicleSelect,orderBy:{[input.sortBy]:input.sortOrder},skip:(input.page-1)*input.limit,take:input.limit}),prisma.vehicle.count({where})])
-  return{data,pagination:{page:input.page,limit:input.limit,total,totalPages:Math.ceil(total/input.limit)}}
+async function assertCustomer(companyId: string, customerId: string) {
+  const customer = await prisma.customer.findFirst({
+    where: { id: customerId, companyId, deletedAt: null, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (!customer)
+    throw new AppError(
+      404,
+      "CUSTOMER_NOT_FOUND",
+      "Cliente nao encontrado ou indisponivel.",
+    );
 }
-export async function getVehicle(companyId:string,id:string){const vehicle=await prisma.vehicle.findFirst({where:{id,companyId,deletedAt:null},select:vehicleSelect});if(!vehicle)throw new AppError(404,'VEHICLE_NOT_FOUND','Veiculo nao encontrado.');return vehicle}
-export async function createVehicle(actor:VehicleActor,input:CreateVehicleInput){await assertCustomer(actor.companyId,input.customerId);await assertBranch(actor.companyId,input.originBranchId);try{return await prisma.$transaction(async tx=>{const vehicle=await tx.vehicle.create({data:{...input,companyId:actor.companyId},select:vehicleSelect});await tx.auditLog.create({data:auditData(actor,'VEHICLE_CREATE',vehicle.id,{customerId:vehicle.customerId,plate:vehicle.plate})});return vehicle})}catch(error){handleConflict(error)}}
-export async function updateVehicle(actor:VehicleActor,id:string,input:UpdateVehicleInput){await getVehicle(actor.companyId,id);if(input.customerId)await assertCustomer(actor.companyId,input.customerId);await assertBranch(actor.companyId,input.originBranchId);try{return await prisma.$transaction(async tx=>{const changed=await tx.vehicle.updateMany({where:{id,companyId:actor.companyId,deletedAt:null},data:input});if(!changed.count)throw new AppError(404,'VEHICLE_NOT_FOUND','Veiculo nao encontrado.');const vehicle=await tx.vehicle.findFirstOrThrow({where:{id,companyId:actor.companyId,deletedAt:null},select:vehicleSelect});await tx.auditLog.create({data:auditData(actor,'VEHICLE_UPDATE',id,{fields:Object.keys(input)})});return vehicle})}catch(error){handleConflict(error)}}
-export async function deleteVehicle(actor:VehicleActor,id:string){await prisma.$transaction(async tx=>{const changed=await tx.vehicle.updateMany({where:{id,companyId:actor.companyId,deletedAt:null},data:{deletedAt:new Date(),status:'INACTIVE'}});if(!changed.count)throw new AppError(404,'VEHICLE_NOT_FOUND','Veiculo nao encontrado.');await tx.auditLog.create({data:auditData(actor,'VEHICLE_DELETE',id)})})}
+async function assertBranch(companyId: string, branchId?: string | null) {
+  if (!branchId) return;
+  const branch = await prisma.branch.findFirst({
+    where: { id: branchId, companyId, deletedAt: null, status: "ACTIVE" },
+    select: { id: true },
+  });
+  if (!branch)
+    throw new AppError(404, "BRANCH_NOT_FOUND", "Filial nao encontrada.");
+}
+function handleConflict(error: unknown): never {
+  if (
+    error instanceof PrismaRuntime.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  ) {
+    const target = String(
+      (error.meta as { target?: unknown } | undefined)?.target ?? "",
+    );
+    throw new AppError(
+      409,
+      target.toLowerCase().includes("chassis")
+        ? "VEHICLE_CHASSIS_EXISTS"
+        : "VEHICLE_PLATE_EXISTS",
+      target.toLowerCase().includes("chassis")
+        ? "Chassi ja cadastrado nesta empresa."
+        : "Placa ja cadastrada nesta empresa.",
+    );
+  }
+  throw error;
+}
+
+export async function listVehicles(
+  companyId: string,
+  input: ListVehiclesInput,
+) {
+  const normalized = input.search?.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const where: Prisma.VehicleWhereInput = {
+    companyId,
+    deletedAt: null,
+    status: input.status,
+    customerId: input.customerId,
+    originBranchId: input.branchId,
+    fuelType: input.fuelType,
+    brand: input.brand
+      ? { contains: input.brand, mode: "insensitive" }
+      : undefined,
+    model: input.model
+      ? { contains: input.model, mode: "insensitive" }
+      : undefined,
+    ...(input.search
+      ? {
+          OR: [
+            { plate: { contains: normalized || input.search } },
+            { brand: { contains: input.search, mode: "insensitive" } },
+            { model: { contains: input.search, mode: "insensitive" } },
+            { version: { contains: input.search, mode: "insensitive" } },
+            { chassis: { contains: normalized || input.search } },
+            {
+              renavam: {
+                contains: input.search.replace(/\D/g, "") || input.search,
+              },
+            },
+            {
+              customer: {
+                is: {
+                  companyId,
+                  deletedAt: null,
+                  name: { contains: input.search, mode: "insensitive" },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+  const [data, total] = await prisma.$transaction([
+    prisma.vehicle.findMany({
+      where,
+      select: vehicleSelect,
+      orderBy: { [input.sortBy]: input.sortOrder },
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+    }),
+    prisma.vehicle.count({ where }),
+  ]);
+  return {
+    data,
+    pagination: {
+      page: input.page,
+      limit: input.limit,
+      total,
+      totalPages: Math.ceil(total / input.limit),
+    },
+  };
+}
+export async function getVehicle(companyId: string, id: string) {
+  const vehicle = await prisma.vehicle.findFirst({
+    where: { id, companyId, deletedAt: null },
+    select: vehicleSelect,
+  });
+  if (!vehicle)
+    throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+  return vehicle;
+}
+export async function createVehicle(
+  actor: VehicleActor,
+  input: CreateVehicleInput,
+) {
+  await assertCustomer(actor.companyId, input.customerId);
+  await assertBranch(actor.companyId, input.originBranchId);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const vehicle = await tx.vehicle.create({
+        data: { ...input, companyId: actor.companyId },
+        select: vehicleSelect,
+      });
+      await tx.vehicleHistoryEvent.create({
+        data: {
+          companyId: actor.companyId,
+          vehicleId: vehicle.id,
+          branchId: actor.branchId,
+          actorUserId: actor.userId,
+          eventType: "VEHICLE_CREATED",
+          sourceType: "VEHICLE",
+          sourceId: vehicle.id,
+          title: "Veiculo cadastrado",
+          description: `${vehicle.brand} ${vehicle.model}`,
+          mileage: vehicle.currentMileage,
+          eventDate: new Date(),
+          isManual: false,
+        },
+      });
+      await tx.auditLog.create({
+        data: auditData(actor, "VEHICLE_CREATE", vehicle.id, {
+          customerId: vehicle.customerId,
+          plate: vehicle.plate,
+        }),
+      });
+      return vehicle;
+    });
+  } catch (error) {
+    handleConflict(error);
+  }
+}
+export async function updateVehicle(
+  actor: VehicleActor,
+  id: string,
+  input: UpdateVehicleInput,
+) {
+  const current = await getVehicle(actor.companyId, id);
+  if (
+    input.currentMileage !== undefined &&
+    current.currentMileage !== null &&
+    (input.currentMileage === null ||
+      input.currentMileage < current.currentMileage)
+  ) {
+    throw new AppError(
+      400,
+      "VEHICLE_MILEAGE_DECREASE",
+      "A quilometragem atual do veiculo nao pode ser reduzida.",
+    );
+  }
+  if (input.customerId) await assertCustomer(actor.companyId, input.customerId);
+  await assertBranch(actor.companyId, input.originBranchId);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const changed = await tx.vehicle.updateMany({
+        where: { id, companyId: actor.companyId, deletedAt: null },
+        data: input,
+      });
+      if (!changed.count)
+        throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+      const vehicle = await tx.vehicle.findFirstOrThrow({
+        where: { id, companyId: actor.companyId, deletedAt: null },
+        select: vehicleSelect,
+      });
+      const fields = Object.keys(input);
+      await tx.vehicleHistoryEvent.create({
+        data: {
+          companyId: actor.companyId,
+          vehicleId: id,
+          branchId: actor.branchId,
+          actorUserId: actor.userId,
+          eventType:
+            fields.length === 1 && fields[0] === "currentMileage"
+              ? "MILEAGE_RECORDED"
+              : "VEHICLE_UPDATED",
+          sourceType: "VEHICLE",
+          sourceId: id,
+          title:
+            fields.length === 1 && fields[0] === "currentMileage"
+              ? "Quilometragem atualizada"
+              : "Dados do veiculo atualizados",
+          mileage: input.currentMileage,
+          eventDate: new Date(),
+          metadata: { fields },
+          isManual: false,
+        },
+      });
+      await tx.auditLog.create({
+        data: auditData(actor, "VEHICLE_UPDATE", id, { fields }),
+      });
+      return vehicle;
+    });
+  } catch (error) {
+    handleConflict(error);
+  }
+}
+export async function deleteVehicle(actor: VehicleActor, id: string) {
+  await prisma.$transaction(async (tx) => {
+    const changed = await tx.vehicle.updateMany({
+      where: { id, companyId: actor.companyId, deletedAt: null },
+      data: { deletedAt: new Date(), status: "INACTIVE" },
+    });
+    if (!changed.count)
+      throw new AppError(404, "VEHICLE_NOT_FOUND", "Veiculo nao encontrado.");
+    await tx.auditLog.create({ data: auditData(actor, "VEHICLE_DELETE", id) });
+  });
+}

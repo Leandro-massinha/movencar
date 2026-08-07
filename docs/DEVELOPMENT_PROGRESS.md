@@ -2,6 +2,21 @@
 
 Última atualização: 07/08/2026
 
+## Módulo Histórico do Veículo concluído
+
+- `VehicleHistoryEvent` implementado como linha do tempo imutável, com tipos controlados, origem do evento, autoria, filial opcional, data, descrição, quilometragem e metadata interna.
+- Migration `20260807190000_add_vehicle_history` cria FKs compostas tenant-safe para veículo, filial e usuário; o banco impede associações entre empresas diferentes.
+- API disponível em `GET/POST /api/vehicles/:vehicleId/history` e `GET /api/vehicles/:vehicleId/history/:eventId`, sempre usando `companyId` autenticado e `vehicleId`, com filtros por tipo/período, ordenação e paginação máxima de 100.
+- Eventos manuais aceitam somente `NOTE`, `MILEAGE_RECORDED`, `OWNER_CHANGED` e `GENERAL`; empresa, usuário e origem são derivados pelo backend. O payload de resposta omite `companyId` e `metadata`.
+- Cadastro e atualização de veículos geram eventos automáticos transacionais. A quilometragem atual só aumenta: um evento histórico menor é preservado sem reduzir o veículo, e atualização direta regressiva é rejeitada.
+- Permissões `vehicle_history.view` e `vehicle_history.create` adicionadas ao seed e aplicadas às rotas. Criações manuais geram `AuditLog`.
+- Frontend integrado em `/veiculos/:id/historico`, com resumo do veículo, filtros, timeline responsiva e inclusão de anotação, preservando o design system e o modo mock.
+- Testes cobrem validação, permissões, isolamento Empresa A x Empresa B, filial cross-tenant, autoria derivada da sessão, filtros, ordenação, paginação, resposta pública e regras de quilometragem.
+
+Arquivos centrais: `backend/src/modules/vehicle-history/*`, `backend/prisma/migrations/20260807190000_add_vehicle_history`, `backend/tests/vehicle-history*`, `src/services/vehicleHistory.ts` e `src/pages/VehicleHistoryPage.tsx`.
+
+Próxima ação: abrir Pull Request de `feature/vehicle-history` para `develop`. Nenhum módulo posterior foi iniciado nesta branch.
+
 ## Módulo Veículos concluído
 
 ### Auditoria de segurança do Pull Request #3

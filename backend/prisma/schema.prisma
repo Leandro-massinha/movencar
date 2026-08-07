@@ -19,14 +19,14 @@ enum UserStatus {
 }
 
 model Company {
-  id                String               @id @default(uuid()) @db.Uuid
-  code              String               @unique @db.VarChar(60)
-  legalName         String               @db.VarChar(180)
-  tradeName         String               @db.VarChar(180)
-  document          String?              @db.VarChar(30)
-  status            RecordStatus         @default(ACTIVE)
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  id                String                @id @default(uuid()) @db.Uuid
+  code              String                @unique @db.VarChar(60)
+  legalName         String                @db.VarChar(180)
+  tradeName         String                @db.VarChar(180)
+  document          String?               @db.VarChar(30)
+  status            RecordStatus          @default(ACTIVE)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
   deletedAt         DateTime?
   branches          Branch[]
   users             User[]
@@ -37,23 +37,25 @@ model Company {
   customers         Customer[]
   customerAddresses CustomerAddress[]
   vehicles          Vehicle[]
+  vehicleHistory    VehicleHistoryEvent[]
 }
 
 model Branch {
-  id              String               @id @default(uuid()) @db.Uuid
-  companyId       String               @db.Uuid
-  code            String               @db.VarChar(40)
-  name            String               @db.VarChar(140)
-  status          RecordStatus         @default(ACTIVE)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  id              String                @id @default(uuid()) @db.Uuid
+  companyId       String                @db.Uuid
+  code            String                @db.VarChar(40)
+  name            String                @db.VarChar(140)
+  status          RecordStatus          @default(ACTIVE)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
   deletedAt       DateTime?
-  company         Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company         Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
   users           User[]
   auditLogs       AuditLog[]
   resources       TenantTestResource[]
-  customersOrigin Customer[]           @relation("CustomerOriginBranch")
-  vehiclesOrigin  Vehicle[]            @relation("VehicleOriginBranch")
+  customersOrigin Customer[]            @relation("CustomerOriginBranch")
+  vehiclesOrigin  Vehicle[]             @relation("VehicleOriginBranch")
+  vehicleHistory  VehicleHistoryEvent[]
 
   @@unique([companyId, code])
   @@unique([id, companyId])
@@ -61,25 +63,27 @@ model Branch {
 }
 
 model User {
-  id                  String        @id @default(uuid()) @db.Uuid
-  companyId           String        @db.Uuid
-  defaultBranchId     String        @db.Uuid
-  name                String        @db.VarChar(140)
-  email               String        @db.VarChar(180)
+  id                  String                @id @default(uuid()) @db.Uuid
+  companyId           String                @db.Uuid
+  defaultBranchId     String                @db.Uuid
+  name                String                @db.VarChar(140)
+  email               String                @db.VarChar(180)
   passwordHash        String
-  status              UserStatus    @default(ACTIVE)
-  failedLoginAttempts Int           @default(0)
+  status              UserStatus            @default(ACTIVE)
+  failedLoginAttempts Int                   @default(0)
   lockedUntil         DateTime?
   lastLoginAt         DateTime?
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   deletedAt           DateTime?
-  company             Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  defaultBranch       Branch        @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
+  company             Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  defaultBranch       Branch                @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
   roles               UserRole[]
   sessions            UserSession[]
-  auditLogs           AuditLog[]    @relation("AuditActor")
+  auditLogs           AuditLog[]            @relation("AuditActor")
+  vehicleHistory      VehicleHistoryEvent[] @relation("VehicleHistoryActor")
 
+  @@unique([id, companyId])
   @@index([companyId, email])
 }
 
@@ -282,9 +286,10 @@ model Vehicle {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  company      Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  customer     Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
-  originBranch Branch?  @relation("VehicleOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
+  company      Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer     Customer              @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  originBranch Branch?               @relation("VehicleOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
+  history      VehicleHistoryEvent[]
 
   @@unique([id, companyId])
   @@index([companyId, customerId])
@@ -292,6 +297,50 @@ model Vehicle {
   @@index([companyId, brand, model])
   @@index([companyId, originBranchId])
   @@index([companyId, deletedAt])
+}
+
+enum VehicleHistoryEventType {
+  VEHICLE_CREATED
+  VEHICLE_UPDATED
+  MILEAGE_RECORDED
+  NOTE
+  OWNER_CHANGED
+  GENERAL
+}
+
+enum VehicleHistorySourceType {
+  MANUAL
+  SYSTEM
+  VEHICLE
+  FUTURE_MODULE
+}
+
+model VehicleHistoryEvent {
+  id          String  @id @default(uuid()) @db.Uuid
+  companyId   String  @db.Uuid
+  vehicleId   String  @db.Uuid
+  branchId    String? @db.Uuid
+  actorUserId String? @db.Uuid
+
+  eventType  VehicleHistoryEventType
+  sourceType VehicleHistorySourceType
+  sourceId   String?                  @db.VarChar(100)
+
+  title       String   @db.VarChar(180)
+  description String?  @db.Text
+  mileage     Int?
+  eventDate   DateTime
+  metadata    Json?
+  isManual    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  vehicle Vehicle @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  branch  Branch? @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
+  actor   User?   @relation("VehicleHistoryActor", fields: [actorUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@index([companyId, vehicleId, eventDate])
+  @@index([companyId, vehicleId, eventType])
 }
 
 model CustomerAddress {
