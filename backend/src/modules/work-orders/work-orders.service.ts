@@ -124,6 +124,33 @@ function conflict(error: unknown): never {
   throw error;
 }
 
+function assertSameIntake(
+  existing: {
+    branch: { id: string };
+    customer: { id: string };
+    vehicle: { id: string };
+    purpose: string;
+    mileageAtEntry: number | null;
+    notes: string | null;
+  },
+  branchId: string,
+  input: CreateWorkOrderInput,
+) {
+  if (
+    existing.branch.id !== branchId ||
+    existing.customer.id !== input.customerId ||
+    existing.vehicle.id !== input.vehicleId ||
+    existing.purpose !== input.purpose ||
+    existing.mileageAtEntry !== (input.mileageAtEntry ?? null) ||
+    existing.notes !== (input.notes ?? null)
+  )
+    throw new AppError(
+      409,
+      "IDEMPOTENCY_KEY_REUSED",
+      "A chave de idempotência já foi usada em outra operação.",
+    );
+}
+
 export async function listWorkOrders(
   companyId: string,
   input: ListWorkOrdersInput,
@@ -184,7 +211,10 @@ export async function createWorkOrder(
       where: { companyId: actor.companyId, operationKey },
       select: workOrderSelect,
     });
-    if (existing) return existing;
+    if (existing) {
+      assertSameIntake(existing, branchId, input);
+      return existing;
+    }
   }
   try {
     return await prisma.$transaction(async (tx) => {
@@ -258,14 +288,17 @@ export async function createWorkOrder(
         }),
       });
       return order;
-    });
+    }, { maxWait: 30_000, timeout: 15_000 });
   } catch (error) {
     if (operationKey) {
       const existing = await prisma.workOrder.findFirst({
         where: { companyId: actor.companyId, operationKey },
         select: workOrderSelect,
       });
-      if (existing) return existing;
+      if (existing) {
+        assertSameIntake(existing, branchId, input);
+        return existing;
+      }
     }
     conflict(error);
   }
@@ -277,13 +310,31 @@ export async function closeWorkOrder(
 ) {
   const now = new Date();
   return prisma.$transaction(async (tx) => {
+    const current = await tx.workOrder.findFirst({
+      where: { id, companyId: actor.companyId },
+      select: { status: true },
+    });
+    if (!current)
+      throw new AppError(
+        404,
+        "WORK_ORDER_NOT_FOUND",
+        "Ordem de Serviço não encontrada.",
+      );
+    if (current.status !== "OPEN")
+      throw new AppError(
+        409,
+        "WORK_ORDER_NOT_OPEN",
+        "A Ordem de Serviço não está aberta.",
+      );
     const changed = await tx.workOrder.updateMany({
       where: { id, companyId: actor.companyId, status: "OPEN" },
       data: {
         status:
           input.outcome === "NO_SERVICE"
             ? "CLOSED_NO_SERVICE"
-            : "CANCELLED",
+            : input.outcome === "COMPLETED"
+              ? "CLOSED"
+              : "CANCELLED",
         closedAt: now,
         closingReason:
           input.outcome === "NO_SERVICE" ? input.closingReason : null,
@@ -309,13 +360,17 @@ export async function closeWorkOrder(
         eventType:
           input.outcome === "NO_SERVICE"
             ? "WORK_ORDER_CLOSED_NO_SERVICE"
-            : "WORK_ORDER_CANCELLED",
+            : input.outcome === "COMPLETED"
+              ? "WORK_ORDER_COMPLETED"
+              : "WORK_ORDER_CANCELLED",
         sourceType: "FUTURE_MODULE",
         sourceId: id,
         title:
           input.outcome === "NO_SERVICE"
             ? `Ordem de Serviço #${order.number} encerrada sem serviço`
-            : `Ordem de Serviço #${order.number} cancelada`,
+            : input.outcome === "COMPLETED"
+              ? `Ordem de Serviço #${order.number} encerrada`
+              : `Ordem de Serviço #${order.number} cancelada`,
         eventDate: now,
         isManual: false,
       },
@@ -345,6 +400,22 @@ export async function createConcern(
   input: CreateConcernInput,
 ) {
   return prisma.$transaction(async (tx) => {
+    const current = await tx.workOrder.findFirst({
+      where: { id: workOrderId, companyId: actor.companyId },
+      select: { status: true },
+    });
+    if (!current)
+      throw new AppError(
+        404,
+        "WORK_ORDER_NOT_FOUND",
+        "Ordem de Serviço não encontrada.",
+      );
+    if (current.status !== "OPEN")
+      throw new AppError(
+        409,
+        "WORK_ORDER_NOT_OPEN",
+        "A Ordem de Serviço não está aberta.",
+      );
     let order;
     try {
       order = await tx.workOrder.update({
@@ -420,16 +491,19 @@ export async function createCheckIn(
   input: CreateCheckInInput,
 ) {
   const order = await prisma.workOrder.findFirst({
-    where: { id: workOrderId, companyId: actor.companyId, status: "OPEN" },
+    where: { id: workOrderId, companyId: actor.companyId },
     select: {
       id: true,
       companyId: true,
       branchId: true,
       customerId: true,
       vehicleId: true,
+      status: true,
     },
   });
   if (!order)
+    throw new AppError(404, "WORK_ORDER_NOT_FOUND", "Ordem de Serviço não encontrada.");
+  if (order.status !== "OPEN")
     throw new AppError(409, "WORK_ORDER_NOT_OPEN", "A Ordem de Serviço não está aberta.");
   try {
     return await prisma.$transaction(async (tx) => {
@@ -461,6 +535,7 @@ export async function updateCheckIn(
   workOrderId: string,
   input: CreateCheckInInput,
 ) {
+  await getWorkOrder(actor.companyId, workOrderId);
   const changed = await prisma.vehicleCheckIn.updateMany({
     where: { companyId: actor.companyId, workOrderId, status: "DRAFT" },
     data: input,
@@ -479,6 +554,16 @@ export async function completeCheckIn(
 ) {
   const now = new Date();
   return prisma.$transaction(async (tx) => {
+    const order = await tx.workOrder.findFirst({
+      where: { id: workOrderId, companyId: actor.companyId },
+      select: { id: true },
+    });
+    if (!order)
+      throw new AppError(
+        404,
+        "WORK_ORDER_NOT_FOUND",
+        "Ordem de Serviço não encontrada.",
+      );
     const checkIn = await tx.vehicleCheckIn.findFirst({
       where: { companyId: actor.companyId, workOrderId, status: "DRAFT" },
       select: {

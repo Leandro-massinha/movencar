@@ -4,13 +4,14 @@
 
 ## Fundação de Entrada, OS e PDC
 
-- WorkOrder tornou-se o registro operacional obrigatório para toda entrada física, com número sequencial por empresa, finalidade, status reduzidos e idempotência de abertura.
-- Encerramento sem serviço preserva motivo estruturado, timeline e AuditLog; fechamento concorrente usa compare-and-swap.
+- WorkOrder tornou-se o registro operacional obrigatório para toda entrada física, com número monotônico e único por empresa, finalidade, status reduzidos e idempotência de abertura. A numeração não é fiscal e pode conter lacunas, mas nunca duplicatas ou reutilização.
+- Encerramento normal, cancelamento e encerramento sem serviço preservam timeline e AuditLog; o caso sem serviço mantém motivo estruturado e todo fechamento concorrente usa compare-and-swap.
 - CustomerConcern foi implementado como relato original imutável, ordenado dentro da OS e separado de Check-in/PDC/diagnóstico.
 - VehicleCheckIn foi implementado com criação e edição apenas em `DRAFT`; conclusão é transacional, imutável pelas APIs atuais e integra Vehicle History e VehicleOdometerReading.
 - Relações compostas garantem que Check-in, OS, empresa, filial, cliente e veículo pertençam à mesma entrada e tenant. FKs usam `RESTRICT`.
 - PDC, road tests, checklist, avarias, FileAsset/Attachment, confirmação, snapshots e retificações receberam contratos arquiteturais, sem tabelas prematuras.
 - Customer Identity/Fiscal Profile, múltiplos contatos, consentimentos e relacionamentos continuam documentados para implementação progressiva, sem bloquear abertura rápida da OS.
+- A auditoria do PR #8 acrescentou o fluxo `OPEN → CLOSED`, respostas sem descoberta de IDs cross-tenant nas mutações e cobertura PostgreSQL real para 100 aberturas concorrentes e double-submit.
 
 ## Fundação Customer 360° e Vehicle 360°
 

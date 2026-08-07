@@ -47,6 +47,10 @@ export const createWorkOrderSchema = z.object({
 });
 export const closeWorkOrderSchema = z.discriminatedUnion("outcome", [
   z.object({
+    outcome: z.literal("COMPLETED"),
+    closingNotes: optionalText(5000),
+  }),
+  z.object({
     outcome: z.literal("NO_SERVICE"),
     closingReason: z.enum([
       "PRICE",

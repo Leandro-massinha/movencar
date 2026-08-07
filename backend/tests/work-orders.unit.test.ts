@@ -23,6 +23,9 @@ describe("work order intake validation", () => {
   });
 
   it("requires a closing reason when no service was performed", () => {
+    expect(closeWorkOrderSchema.parse({ outcome: "COMPLETED" })).toEqual({
+      outcome: "COMPLETED",
+    });
     expect(() => closeWorkOrderSchema.parse({ outcome: "NO_SERVICE" })).toThrow();
     expect(
       closeWorkOrderSchema.parse({ outcome: "NO_SERVICE", closingReason: "PRICE" }),

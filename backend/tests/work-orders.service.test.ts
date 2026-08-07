@@ -52,6 +52,8 @@ const order = {
   purpose: "DIAGNOSTIC",
   status: "OPEN",
   openedAt: new Date(),
+  mileageAtEntry: null,
+  notes: null,
   vehicle: { id: "vehicle-a" },
   customer: { id: "customer-a" },
   branch: { id: "branch-a" },
@@ -69,6 +71,7 @@ describe("work order intake security and consistency", () => {
     db.vehicle.findFirst.mockResolvedValue({ id: "vehicle-a" });
     db.workOrderSequence.upsert.mockResolvedValue({ lastValue: 1842 });
     db.workOrder.create.mockResolvedValue(order);
+    db.workOrder.findFirst.mockResolvedValue(order);
     db.vehicleHistoryEvent.create.mockResolvedValue({ id: "history-a" });
   });
 
@@ -111,6 +114,15 @@ describe("work order intake security and consistency", () => {
         purpose: "DIAGNOSTIC",
       }),
     ).rejects.toMatchObject({ code: "CUSTOMER_NOT_FOUND" });
+    db.customer.findFirst.mockResolvedValueOnce({ id: "customer-a" });
+    db.vehicle.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      createWorkOrder(actor, {
+        customerId: "customer-a",
+        vehicleId: "vehicle-b",
+        purpose: "DIAGNOSTIC",
+      }),
+    ).rejects.toMatchObject({ code: "VEHICLE_NOT_FOUND" });
   });
 
   it("returns the same intake for an idempotency retry", async () => {
@@ -126,6 +138,23 @@ describe("work order intake security and consistency", () => {
         "intake:device:123",
       ),
     ).resolves.toEqual(order);
+    expect(db.workOrder.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects reuse of an idempotency key with another payload", async () => {
+    db.workOrder.findFirst.mockResolvedValueOnce(order);
+
+    await expect(
+      createWorkOrder(
+        actor,
+        {
+          customerId: "customer-a",
+          vehicleId: "vehicle-a",
+          purpose: "REPAIR",
+        },
+        "intake:device:123",
+      ),
+    ).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
     expect(db.workOrder.create).not.toHaveBeenCalled();
   });
 
@@ -228,6 +257,39 @@ describe("work order intake security and consistency", () => {
     });
   });
 
+  it("closes a completed work order with the normal terminal event", async () => {
+    db.workOrder.updateMany.mockResolvedValue({ count: 1 });
+    db.workOrder.findFirstOrThrow.mockResolvedValue({
+      ...order,
+      status: "CLOSED",
+    });
+
+    await closeWorkOrder(actor, "order-a", { outcome: "COMPLETED" });
+
+    expect(db.workOrder.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "order-a", companyId: "company-a", status: "OPEN" },
+        data: expect.objectContaining({ status: "CLOSED" }),
+      }),
+    );
+    expect(db.vehicleHistoryEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ eventType: "WORK_ORDER_COMPLETED" }),
+      }),
+    );
+  });
+
+  it("does not reveal a cross-tenant work order through close", async () => {
+    db.workOrder.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      closeWorkOrder({ ...actor, companyId: "company-b" }, "order-a", {
+        outcome: "COMPLETED",
+      }),
+    ).rejects.toMatchObject({ status: 404, code: "WORK_ORDER_NOT_FOUND" });
+    expect(db.workOrder.updateMany).not.toHaveBeenCalled();
+  });
+
   it("uses CAS so concurrent close does not duplicate effects", async () => {
     db.workOrder.updateMany.mockResolvedValue({ count: 0 });
     await expect(
@@ -250,6 +312,7 @@ describe("immutable customer concerns", () => {
       vehicleId: "vehicle-a",
       branchId: "branch-a",
     });
+    db.workOrder.findFirst.mockResolvedValue({ status: "OPEN" });
     db.customerConcern.create.mockResolvedValue({
       id: "concern-a",
       description: "Barulho ao frear.",
@@ -291,6 +354,19 @@ describe("immutable customer concerns", () => {
       }),
     );
   });
+
+  it("does not reveal or mutate a concern aggregate from another tenant", async () => {
+    db.workOrder.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      createConcern({ ...actor, companyId: "company-b" }, "order-a", {
+        description: "Problema na suspensão.",
+        priority: "NORMAL",
+      }),
+    ).rejects.toMatchObject({ status: 404, code: "WORK_ORDER_NOT_FOUND" });
+    expect(db.workOrder.update).not.toHaveBeenCalled();
+    expect(db.customerConcern.create).not.toHaveBeenCalled();
+  });
 });
 
 describe("documentary check-in", () => {
@@ -303,6 +379,7 @@ describe("documentary check-in", () => {
       branchId: "branch-a",
       customerId: "customer-a",
       vehicleId: "vehicle-a",
+      status: "OPEN",
     });
     db.vehicleCheckIn.create.mockResolvedValue({
       id: "check-in-a",
@@ -332,6 +409,26 @@ describe("documentary check-in", () => {
     await expect(
       updateCheckIn(actor, "order-a", { generalNotes: "Alteração" }),
     ).rejects.toMatchObject({ code: "CHECK_IN_NOT_EDITABLE" });
+  });
+
+  it("keeps completed, confirmed and cancelled check-ins immutable", async () => {
+    for (const status of ["COMPLETED", "CONFIRMED", "CANCELLED"]) {
+      db.vehicleCheckIn.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(
+        updateCheckIn(actor, "order-a", { generalNotes: status }),
+      ).rejects.toMatchObject({ code: "CHECK_IN_NOT_EDITABLE" });
+    }
+  });
+
+  it("does not reveal a cross-tenant work order through check-in mutations", async () => {
+    db.workOrder.findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      createCheckIn({ ...actor, companyId: "company-b" }, "order-a", {
+        fuelLevel: 50,
+      }),
+    ).rejects.toMatchObject({ status: 404, code: "WORK_ORDER_NOT_FOUND" });
+    expect(db.vehicleCheckIn.create).not.toHaveBeenCalled();
   });
 
   it("completes once and integrates timeline, odometer and audit", async () => {
