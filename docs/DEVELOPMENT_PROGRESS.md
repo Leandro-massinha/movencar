@@ -4,6 +4,14 @@
 
 ## Módulo Veículos concluído
 
+### Auditoria de segurança do Pull Request #3
+
+Revisão pré-merge concluída em 07/08/2026, sem realizar merge. A estrutura do módulo foi confirmada como tenant-safe: FKs compostas protegem cliente e filial no PostgreSQL, todas as operações usam `companyId` autenticado, updates e soft delete usam filtros compostos, e respostas omitem campos internos. Não foi necessária migration adicional.
+
+Foi identificada uma lacuna de cobertura de baixa gravidade: os testes Empresa A x Empresa B existiam no modelo em memória, mas não inspecionavam diretamente as queries Prisma de listagem/leitura e do filtro `customerId`; o frontend também cobria o modo mock, mas não verificava explicitamente o roteamento no modo API real. Foram adicionados testes de regressão para esses pontos, inclusive garantindo que o frontend não envie `companyId` nem IDs demonstrativos de filial.
+
+Resultado final da auditoria: backend com 68 testes e frontend com 13 testes; Prisma validate, migration status, lint e builds aprovados.
+
 - Model `Vehicle` criado com status, cliente obrigatório, filial de origem opcional, placa, RENAVAM, chassi, identificação técnica, anos, combustível, transmissão, potência, portas, quilometragem atual, observações e soft delete.
 - A placa é armazenada somente na forma normalizada, evitando duplicidade entre `plate` e `plateNormalized`. São aceitos os formatos brasileiro antigo e Mercosul; veículo sem placa é permitido.
 - Migration `20260807170000_add_vehicles` versionada, revisada e aplicada. Inclui FKs compostas tenant-safe para `Customer` e `Branch`, constraints numéricas, índices de listagem e índices parciais de unicidade para placa e chassi ativos por empresa.
@@ -14,7 +22,7 @@
 - Auditoria transacional implementada com `VEHICLE_CREATE`, `VEHICLE_UPDATE` e `VEHICLE_DELETE`.
 - Página Veículos integrada após validação do backend, preservando layout/design system, com busca, filtros, tabela, paginação, seleção de cliente, cadastro e exclusão. `VITE_USE_MOCKS=true` permanece funcional.
 - Testes adicionados para validação, normalização, unicidade, soft delete, busca, paginação, permissões, queries tenant-safe e isolamento Empresa A x Empresa B.
-- Validação final: backend com 66 testes e frontend com 11 testes; Prisma generate, lint e builds aprovados. Nenhum módulo de histórico, atendimento, OS ou revisão foi iniciado.
+- Validação final: backend com 68 testes e frontend com 13 testes; Prisma generate/validate, lint e builds aprovados. Nenhum módulo de histórico, atendimento, OS ou revisão foi iniciado.
 
 Arquivos centrais: `backend/src/modules/vehicles/*`, `backend/prisma/migrations/20260807170000_add_vehicles`, `backend/tests/vehicles*`, `src/services/vehicles.ts` e `src/pages/VehiclesPage.tsx`.
 
