@@ -54,6 +54,7 @@ model Branch {
   customersOrigin Customer[]           @relation("CustomerOriginBranch")
 
   @@unique([companyId, code])
+  @@unique([id, companyId])
   @@index([companyId, status])
 }
 
@@ -207,7 +208,7 @@ model Customer {
   deletedAt DateTime?
 
   company      Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  originBranch Branch? @relation("CustomerOriginBranch", fields: [originBranchId], references: [id], onDelete: SetNull)
+  originBranch Branch? @relation("CustomerOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
 
   addresses CustomerAddress[]
 

@@ -50,7 +50,12 @@ export async function createCustomer(actor: Actor, input: CreateCustomerInput) {
 }
 
 export async function updateCustomer(actor: Actor, id: string, input: UpdateCustomerInput) {
-  await getCustomer(actor.companyId, id); await assertBranch(actor.companyId, input.originBranchId)
+  const current = await getCustomer(actor.companyId, id); await assertBranch(actor.companyId, input.originBranchId)
+  const resultingType = input.type ?? current.type
+  const resultingDocument = input.document === undefined ? current.document : input.document
+  if (resultingDocument && resultingDocument.length !== (resultingType === 'COMPANY' ? 14 : 11)) {
+    throw new AppError(400, 'INVALID_CUSTOMER_DOCUMENT', resultingType === 'COMPANY' ? 'CNPJ deve ter 14 digitos.' : 'CPF deve ter 11 digitos.')
+  }
   try { return await prisma.$transaction(async (tx) => {
     const result = await tx.customer.updateMany({ where: { id, companyId: actor.companyId, deletedAt: null }, data: input })
     if (!result.count) throw new AppError(404, 'CUSTOMER_NOT_FOUND', 'Cliente nao encontrado.')
@@ -91,7 +96,9 @@ export async function updateAddress(actor: Actor, customerId: string, addressId:
     const current = await tx.customerAddress.findFirst({ where: { id: addressId, companyId: actor.companyId, customerId, deletedAt: null }, select: { id: true } })
     if (!current) throw new AppError(404, 'ADDRESS_NOT_FOUND', 'Endereco nao encontrado.')
     if (input.isPrimary) await tx.customerAddress.updateMany({ where: { companyId: actor.companyId, customerId, deletedAt: null, isPrimary: true, id: { not: addressId } }, data: { isPrimary: false } })
-    const address = await tx.customerAddress.update({ where: { id: addressId }, data: input, select: addressSelect })
+    const changed = await tx.customerAddress.updateMany({ where: { id: addressId, companyId: actor.companyId, customerId, deletedAt: null }, data: input })
+    if (!changed.count) throw new AppError(404, 'ADDRESS_NOT_FOUND', 'Endereco nao encontrado.')
+    const address = await tx.customerAddress.findFirstOrThrow({ where: { id: addressId, companyId: actor.companyId, customerId, deletedAt: null }, select: addressSelect })
     await tx.auditLog.create({ data: auditData(actor, 'CUSTOMER_ADDRESS_UPDATE', 'CustomerAddress', addressId, { customerId, fields: Object.keys(input) }) })
     return address
   })

@@ -4,6 +4,19 @@
 
 ## Módulo Clientes concluído
 
+### Auditoria de segurança do Pull Request #2
+
+Revisão pré-merge concluída em 07/08/2026, sem realizar merge. Foram corrigidos:
+
+- atualização de endereço que, após a leitura protegida, ainda executava o `UPDATE` final somente por `id`; agora escrita e releitura exigem `id + companyId + customerId + deletedAt`;
+- possibilidade de alterar o tipo do cliente e manter CPF/CNPJ com comprimento incompatível;
+- relação de filial de origem reforçada no PostgreSQL por chave estrangeira composta `originBranchId + companyId`, além da validação de filial ativa no serviço;
+- regressão do modo demonstrativo: a página Clientes agora respeita `VITE_USE_MOCKS=true` sem chamar uma API autenticada;
+- cadastro frontend deixou de enviar os identificadores demonstrativos `matriz`/`norte` como se fossem UUIDs de filial;
+- documentação da matriz de permissões atualizada com `customers.*`.
+
+A migration incremental `20260807143000_harden_customer_tenancy` foi aplicada e validada. Foram adicionados testes sobre as queries reais do serviço para isolamento de endereço e transição de documento, além de teste do modo mock no frontend. Resultado da auditoria: backend com 42 testes e frontend com 10 testes; lint e builds aprovados nos dois projetos.
+
 - Schema Prisma auditado com `Customer`, `CustomerAddress`, `CustomerType` e `CustomerStatus`.
 - Migration `20260807110000_add_customers` criada, revisada e aplicada com chaves estrangeiras, índices de busca e chave composta de tenant para endereços.
 - Documento normalizado para dígitos e único por empresa somente entre registros ativos por índice parcial PostgreSQL, permitindo recadastro após soft delete.
