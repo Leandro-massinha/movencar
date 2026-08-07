@@ -13,6 +13,7 @@ import { tenantRouter } from './modules/tenancy/tenant.routes.js'
 
 export function createApp() {
   const app = express()
+  app.set('trust proxy', 1)
   app.disable('x-powered-by')
   app.use((req, res, next) => { req.id = req.get('x-request-id') || crypto.randomUUID(); res.setHeader('x-request-id', req.id); next() })
   app.use(pinoHttp({ logger }))
