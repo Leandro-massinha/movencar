@@ -15,44 +15,41 @@ type VehicleDamageMapProps = {
 
 type Hotspot = {
   location: DamageLocation;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rx?: number;
+  points: string;
   marker: [number, number];
 };
 
+// Coordenadas sobre a imagem 1536x1024. O carro ocupa aproximadamente
+// x=55..1180 e y=205..640. Mantemos a imagem real como fundo e usamos
+// apenas esta camada SVG transparente para interação.
 const hotspots: Hotspot[] = [
-  { location: "REAR_BUMPER", x: 24, y: 130, width: 52, height: 122, rx: 22, marker: [48, 190] },
-  { location: "TRUNK_LID", x: 68, y: 112, width: 112, height: 156, rx: 22, marker: [122, 190] },
-  { location: "REAR_GLASS", x: 178, y: 104, width: 72, height: 170, rx: 18, marker: [214, 190] },
-  { location: "ROOF", x: 246, y: 96, width: 156, height: 184, rx: 24, marker: [324, 190] },
-  { location: "WINDSHIELD", x: 400, y: 103, width: 64, height: 172, rx: 18, marker: [432, 190] },
-  { location: "HOOD", x: 458, y: 110, width: 106, height: 158, rx: 28, marker: [510, 190] },
-  { location: "FRONT_BUMPER", x: 556, y: 128, width: 58, height: 126, rx: 24, marker: [588, 190] },
+  { location: "REAR_BUMPER", points: "58,250 110,218 145,245 140,588 105,625 58,595", marker: [95, 420] },
+  { location: "TRUNK_LID", points: "120,275 205,250 320,270 315,585 205,610 120,580", marker: [215, 430] },
+  { location: "REAR_GLASS", points: "190,286 320,275 350,300 350,545 320,570 190,560", marker: [270, 425] },
+  { location: "ROOF", points: "350,278 705,278 725,305 725,548 705,575 350,575", marker: [535, 425] },
+  { location: "WINDSHIELD", points: "700,282 860,292 900,330 900,535 860,568 700,572", marker: [805, 425] },
+  { location: "HOOD", points: "885,288 1090,285 1145,320 1145,565 1090,600 885,575", marker: [1015, 425] },
+  { location: "FRONT_BUMPER", points: "1110,270 1165,250 1190,285 1190,570 1165,605 1110,585", marker: [1155, 425] },
 
-  { location: "REAR_LEFT_QUARTER", x: 112, y: 61, width: 136, height: 60, rx: 18, marker: [178, 90] },
-  { location: "REAR_RIGHT_QUARTER", x: 112, y: 259, width: 136, height: 60, rx: 18, marker: [178, 290] },
-  { location: "REAR_LEFT_DOOR", x: 246, y: 55, width: 112, height: 66, rx: 16, marker: [302, 87] },
-  { location: "REAR_RIGHT_DOOR", x: 246, y: 259, width: 112, height: 66, rx: 16, marker: [302, 292] },
-  { location: "FRONT_LEFT_DOOR", x: 356, y: 55, width: 104, height: 66, rx: 16, marker: [406, 87] },
-  { location: "FRONT_RIGHT_DOOR", x: 356, y: 259, width: 104, height: 66, rx: 16, marker: [406, 292] },
-  { location: "FRONT_LEFT_FENDER", x: 456, y: 63, width: 98, height: 60, rx: 20, marker: [504, 91] },
-  { location: "FRONT_RIGHT_FENDER", x: 456, y: 257, width: 98, height: 60, rx: 20, marker: [504, 289] },
+  { location: "REAR_LEFT_QUARTER", points: "120,250 325,225 345,285 120,300", marker: [235, 255] },
+  { location: "REAR_RIGHT_QUARTER", points: "120,580 345,565 325,625 120,605", marker: [235, 595] },
+  { location: "REAR_LEFT_DOOR", points: "325,225 545,220 545,280 345,285", marker: [435, 250] },
+  { location: "REAR_RIGHT_DOOR", points: "345,565 545,570 545,630 325,625", marker: [435, 600] },
+  { location: "FRONT_LEFT_DOOR", points: "545,220 735,225 715,290 545,280", marker: [635, 250] },
+  { location: "FRONT_RIGHT_DOOR", points: "545,570 715,560 735,625 545,630", marker: [635, 600] },
+  { location: "FRONT_LEFT_FENDER", points: "735,225 940,245 900,305 715,290", marker: [830, 265] },
+  { location: "FRONT_RIGHT_FENDER", points: "715,560 900,545 940,605 735,625", marker: [830, 585] },
 
-  { location: "LEFT_MIRROR", x: 382, y: 25, width: 52, height: 35, rx: 12, marker: [408, 42] },
-  { location: "RIGHT_MIRROR", x: 382, y: 320, width: 52, height: 35, rx: 12, marker: [408, 338] },
+  { location: "LEFT_MIRROR", points: "720,208 790,205 815,245 760,270", marker: [770, 235] },
+  { location: "RIGHT_MIRROR", points: "720,605 790,580 815,620 760,650", marker: [770, 615] },
 
-  { location: "REAR_LEFT_WHEEL", x: 105, y: 73, width: 66, height: 42, rx: 18, marker: [138, 94] },
-  { location: "REAR_RIGHT_WHEEL", x: 105, y: 265, width: 66, height: 42, rx: 18, marker: [138, 286] },
-  { location: "FRONT_LEFT_WHEEL", x: 459, y: 73, width: 72, height: 42, rx: 18, marker: [495, 94] },
-  { location: "FRONT_RIGHT_WHEEL", x: 459, y: 265, width: 72, height: 42, rx: 18, marker: [495, 286] },
+  { location: "REAR_LEFT_WHEEL", points: "200,230 295,225 305,270 210,280", marker: [255, 250] },
+  { location: "REAR_RIGHT_WHEEL", points: "210,575 305,585 295,630 200,625", marker: [255, 605] },
+  { location: "FRONT_LEFT_WHEEL", points: "925,245 1040,250 1050,305 940,305", marker: [995, 275] },
+  { location: "FRONT_RIGHT_WHEEL", points: "940,545 1050,545 1040,605 925,605", marker: [995, 575] },
 ];
 
-const visualLocations = new Set<DamageLocation>(
-  hotspots.map((hotspot) => hotspot.location),
-);
+const visualLocations = new Set<DamageLocation>(hotspots.map((hotspot) => hotspot.location));
 
 export function VehicleDamageMap({
   damages,
@@ -72,31 +69,22 @@ export function VehicleDamageMap({
   };
 
   return (
-    <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
-      <div className="overflow-hidden rounded-xl border bg-white p-3 sm:p-5">
-        <div className="mx-auto max-w-5xl rounded-xl bg-slate-50 px-2 py-3 sm:px-5 sm:py-4">
-          <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
-            <span>TRASEIRA</span>
-            <span>Toque diretamente na peça do carro</span>
-            <span>DIANTEIRA</span>
-          </div>
+    <div className="mt-4">
+      <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="relative mx-auto w-full max-w-[1536px]">
+          <img
+            src="/assets/vehicle-damage-map.webp"
+            alt="Mapa visual do veículo para registro de avarias"
+            className="block h-auto w-full select-none"
+            draggable={false}
+          />
 
           <svg
-            viewBox="0 0 640 380"
-            role="img"
-            aria-label="Vista superior realista e interativa do veículo para registrar avarias"
-            className="h-auto w-full"
+            viewBox="0 0 1536 1024"
+            preserveAspectRatio="xMidYMid meet"
+            className="absolute inset-0 h-full w-full"
+            aria-label="Áreas interativas do veículo"
           >
-            <image
-              href="/vehicle-damage-top.svg"
-              x="0"
-              y="0"
-              width="640"
-              height="380"
-              preserveAspectRatio="xMidYMid meet"
-              aria-hidden="true"
-            />
-
             {hotspots.map((hotspot) => {
               const count = countFor(hotspot.location);
               const label = locationLabels[hotspot.location];
@@ -117,17 +105,13 @@ export function VehicleDamageMap({
                   }}
                   className={disabled ? "cursor-not-allowed" : "cursor-pointer outline-none"}
                 >
-                  <rect
-                    x={hotspot.x}
-                    y={hotspot.y}
-                    width={hotspot.width}
-                    height={hotspot.height}
-                    rx={hotspot.rx ?? 12}
-                    fill={count ? "#fde68a" : "#ffffff"}
-                    fillOpacity={count ? 0.52 : 0.01}
+                  <polygon
+                    points={hotspot.points}
+                    fill={count ? "#facc15" : "#ffffff"}
+                    fillOpacity={count ? 0.3 : 0.001}
                     stroke={count ? "#eab308" : "transparent"}
-                    strokeWidth={count ? 2.5 : 1}
-                    className={count ? "transition" : "transition hover:fill-amber-100 hover:fill-opacity-30 hover:stroke-amber-400"}
+                    strokeWidth={count ? 4 : 2}
+                    className="transition hover:fill-amber-200/30 hover:stroke-amber-400 focus:fill-amber-200/30 focus:stroke-amber-400"
                     vectorEffect="non-scaling-stroke"
                   />
 
@@ -136,67 +120,68 @@ export function VehicleDamageMap({
                       <circle
                         cx={hotspot.marker[0]}
                         cy={hotspot.marker[1]}
-                        r="12"
+                        r="17"
                         fill="#facc15"
                         stroke="#ffffff"
-                        strokeWidth="3"
+                        strokeWidth="4"
                       />
                       <text
                         x={hotspot.marker[0]}
-                        y={hotspot.marker[1] + 4}
+                        y={hotspot.marker[1] + 6}
                         textAnchor="middle"
-                        className="fill-black text-[11px] font-bold"
+                        className="fill-black text-[16px] font-bold"
                       >
                         {count > 9 ? "9+" : count}
                       </text>
                     </g>
                   )}
-
                   <title>{label}</title>
                 </g>
               );
             })}
           </svg>
         </div>
-
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-5 text-xs text-slate-600">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-full border border-slate-400 bg-white" /> Sem avaria
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <AlertTriangle className="size-3.5 text-amber-600" /> Área com avaria
-          </span>
-          <span className="text-slate-500">Passe o mouse ou toque na peça para selecionar.</span>
-        </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-bold text-slate-800">Outras áreas</h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Use esta lista para vidros, áreas internas ou pontos que não aparecem claramente na vista superior.
-        </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-          {fallbackLocations.map((location) => {
-            const count = countFor(location);
-            return (
-              <button
-                key={location}
-                type="button"
-                disabled={disabled}
-                onClick={() => activate(location)}
-                className="flex min-h-11 items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span>{locationLabels[location]}</span>
-                {count > 0 && (
-                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-5 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-3 rounded-full border border-slate-400 bg-white" /> Sem avaria
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <AlertTriangle className="size-3.5 text-amber-600" /> Área com avaria
+        </span>
+        <span className="text-slate-500">Clique diretamente na peça do veículo.</span>
       </div>
+
+      {fallbackLocations.length > 0 && (
+        <div className="mt-5 rounded-xl border bg-white p-4">
+          <h3 className="text-sm font-bold text-slate-800">Outras áreas</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            Use estes atalhos para áreas internas ou pontos sem hotspot dedicado na imagem.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {fallbackLocations.map((location) => {
+              const count = countFor(location);
+              return (
+                <button
+                  key={location}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => activate(location)}
+                  className="flex min-h-11 items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:border-brand-400 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span>{locationLabels[location]}</span>
+                  {count > 0 && (
+                    <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
