@@ -12,6 +12,8 @@ export function getPublicErrorMessage(
   const message = error.response?.data?.error?.message;
   return typeof message === "string" && message.trim() ? message : fallback;
 }
+export const getApiStatus = (error: unknown) =>
+  axios.isAxiosError(error) ? error.response?.status : undefined;
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",

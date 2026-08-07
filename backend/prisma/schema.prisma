@@ -31,38 +31,44 @@ enum CompanyModuleStatus {
 }
 
 model Company {
-  id                String                    @id @default(uuid()) @db.Uuid
-  code              String                    @unique @db.VarChar(60)
-  legalName         String                    @db.VarChar(180)
-  tradeName         String                    @db.VarChar(180)
-  document          String?                   @db.VarChar(30)
-  status            RecordStatus              @default(ACTIVE)
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  deletedAt         DateTime?
-  branches          Branch[]
-  users             User[]
-  roles             Role[]
-  sessions          UserSession[]
-  auditLogs         AuditLog[]
-  resources         TenantTestResource[]
-  customers         Customer[]
-  customerAddresses CustomerAddress[]
-  vehicles          Vehicle[]
-  companyModules    CompanyModule[]
-  vehicleHistory    VehicleHistoryEvent[]
-  vehicleOwnerships VehicleOwnershipHistory[]
-  odometerReadings  VehicleOdometerReading[]
-  workOrders        WorkOrder[]
-  workOrderSequence WorkOrderSequence?
-  customerConcerns  CustomerConcern[]
-  vehicleCheckIns   VehicleCheckIn[]
-  customerIdentityProfiles CustomerIdentityProfile[]
-  customerContacts CustomerContact[]
-  customerFiscalProfiles CustomerFiscalProfile[]
-  customerRelationships CustomerRelationship[]
+  id                               String                            @id @default(uuid()) @db.Uuid
+  code                             String                            @unique @db.VarChar(60)
+  legalName                        String                            @db.VarChar(180)
+  tradeName                        String                            @db.VarChar(180)
+  document                         String?                           @db.VarChar(30)
+  status                           RecordStatus                      @default(ACTIVE)
+  createdAt                        DateTime                          @default(now())
+  updatedAt                        DateTime                          @updatedAt
+  deletedAt                        DateTime?
+  branches                         Branch[]
+  users                            User[]
+  roles                            Role[]
+  sessions                         UserSession[]
+  auditLogs                        AuditLog[]
+  resources                        TenantTestResource[]
+  customers                        Customer[]
+  customerAddresses                CustomerAddress[]
+  vehicles                         Vehicle[]
+  companyModules                   CompanyModule[]
+  vehicleHistory                   VehicleHistoryEvent[]
+  vehicleOwnerships                VehicleOwnershipHistory[]
+  odometerReadings                 VehicleOdometerReading[]
+  workOrders                       WorkOrder[]
+  workOrderSequence                WorkOrderSequence?
+  customerConcerns                 CustomerConcern[]
+  vehicleCheckIns                  VehicleCheckIn[]
+  customerIdentityProfiles         CustomerIdentityProfile[]
+  customerContacts                 CustomerContact[]
+  customerFiscalProfiles           CustomerFiscalProfile[]
+  customerRelationships            CustomerRelationship[]
   customerCommunicationPreferences CustomerCommunicationPreference[]
-  customerConsents CustomerConsent[]
+  customerConsents                 CustomerConsent[]
+  checklistTemplates               ChecklistTemplate[]
+  checklistInstances               ChecklistInstance[]
+  checklistResults                 ChecklistItemResult[]
+  checkInDamages                   CheckInDamage[]
+  preliminaryDiagnostics           PreliminaryVehicleDiagnostic[]
+  pdcFindings                      PdcFinding[]
 }
 
 model Module {
@@ -97,24 +103,25 @@ model CompanyModule {
 }
 
 model Branch {
-  id               String                   @id @default(uuid()) @db.Uuid
-  companyId        String                   @db.Uuid
-  code             String                   @db.VarChar(40)
-  name             String                   @db.VarChar(140)
-  status           RecordStatus             @default(ACTIVE)
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
-  deletedAt        DateTime?
-  company          Company                  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  users            User[]
-  auditLogs        AuditLog[]
-  resources        TenantTestResource[]
-  customersOrigin  Customer[]               @relation("CustomerOriginBranch")
-  vehiclesOrigin   Vehicle[]                @relation("VehicleOriginBranch")
-  vehicleHistory   VehicleHistoryEvent[]
-  odometerReadings VehicleOdometerReading[]
-  workOrders       WorkOrder[]
-  vehicleCheckIns  VehicleCheckIn[]
+  id                     String                         @id @default(uuid()) @db.Uuid
+  companyId              String                         @db.Uuid
+  code                   String                         @db.VarChar(40)
+  name                   String                         @db.VarChar(140)
+  status                 RecordStatus                   @default(ACTIVE)
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  deletedAt              DateTime?
+  company                Company                        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  users                  User[]
+  auditLogs              AuditLog[]
+  resources              TenantTestResource[]
+  customersOrigin        Customer[]                     @relation("CustomerOriginBranch")
+  vehiclesOrigin         Vehicle[]                      @relation("VehicleOriginBranch")
+  vehicleHistory         VehicleHistoryEvent[]
+  odometerReadings       VehicleOdometerReading[]
+  workOrders             WorkOrder[]
+  vehicleCheckIns        VehicleCheckIn[]
+  preliminaryDiagnostics PreliminaryVehicleDiagnostic[]
 
   @@unique([companyId, code])
   @@unique([id, companyId])
@@ -122,31 +129,36 @@ model Branch {
 }
 
 model User {
-  id                  String                    @id @default(uuid()) @db.Uuid
-  companyId           String                    @db.Uuid
-  defaultBranchId     String                    @db.Uuid
-  name                String                    @db.VarChar(140)
-  email               String                    @db.VarChar(180)
-  passwordHash        String
-  status              UserStatus                @default(ACTIVE)
-  failedLoginAttempts Int                       @default(0)
-  lockedUntil         DateTime?
-  lastLoginAt         DateTime?
-  createdAt           DateTime                  @default(now())
-  updatedAt           DateTime                  @updatedAt
-  deletedAt           DateTime?
-  company             Company                   @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  defaultBranch       Branch                    @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
-  roles               UserRole[]
-  sessions            UserSession[]
-  auditLogs           AuditLog[]                @relation("AuditActor")
-  vehicleHistory      VehicleHistoryEvent[]     @relation("VehicleHistoryActor")
-  vehicleOwnerships   VehicleOwnershipHistory[] @relation("VehicleOwnershipActor")
-  odometerReadings    VehicleOdometerReading[]  @relation("VehicleOdometerActor")
-  attendedWorkOrders  WorkOrder[]               @relation("WorkOrderAttendant")
-  reportedConcerns    CustomerConcern[]         @relation("CustomerConcernReporter")
-  createdCheckIns     VehicleCheckIn[]          @relation("VehicleCheckInCreator")
-  recordedCustomerConsents CustomerConsent[]    @relation("CustomerConsentRecorder")
+  id                        String                         @id @default(uuid()) @db.Uuid
+  companyId                 String                         @db.Uuid
+  defaultBranchId           String                         @db.Uuid
+  name                      String                         @db.VarChar(140)
+  email                     String                         @db.VarChar(180)
+  passwordHash              String
+  status                    UserStatus                     @default(ACTIVE)
+  failedLoginAttempts       Int                            @default(0)
+  lockedUntil               DateTime?
+  lastLoginAt               DateTime?
+  createdAt                 DateTime                       @default(now())
+  updatedAt                 DateTime                       @updatedAt
+  deletedAt                 DateTime?
+  company                   Company                        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  defaultBranch             Branch                         @relation(fields: [defaultBranchId], references: [id], onDelete: Restrict)
+  roles                     UserRole[]
+  sessions                  UserSession[]
+  auditLogs                 AuditLog[]                     @relation("AuditActor")
+  vehicleHistory            VehicleHistoryEvent[]          @relation("VehicleHistoryActor")
+  vehicleOwnerships         VehicleOwnershipHistory[]      @relation("VehicleOwnershipActor")
+  odometerReadings          VehicleOdometerReading[]       @relation("VehicleOdometerActor")
+  attendedWorkOrders        WorkOrder[]                    @relation("WorkOrderAttendant")
+  reportedConcerns          CustomerConcern[]              @relation("CustomerConcernReporter")
+  createdCheckIns           VehicleCheckIn[]               @relation("VehicleCheckInCreator")
+  recordedCustomerConsents  CustomerConsent[]              @relation("CustomerConsentRecorder")
+  createdChecklistInstances ChecklistInstance[]            @relation("ChecklistInstanceCreator")
+  completedChecklistResults ChecklistItemResult[]          @relation("ChecklistResultCompleter")
+  observedCheckInDamages    CheckInDamage[]                @relation("CheckInDamageObserver")
+  preliminaryDiagnostics    PreliminaryVehicleDiagnostic[] @relation("PdcTechnician")
+  createdPdcFindings        PdcFinding[]                   @relation("PdcFindingCreator")
 
   @@unique([id, companyId])
   @@index([companyId, email])
@@ -281,18 +293,18 @@ model Customer {
   company      Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
   originBranch Branch? @relation("CustomerOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
 
-  addresses         CustomerAddress[]
-  vehicles          Vehicle[]
-  vehicleOwnerships VehicleOwnershipHistory[]
-  workOrders        WorkOrder[]
-  vehicleCheckIns   VehicleCheckIn[]
-  identityProfile   CustomerIdentityProfile?
-  contacts          CustomerContact[]
-  fiscalProfile     CustomerFiscalProfile?
-  outgoingRelationships CustomerRelationship[] @relation("CustomerRelationshipSource")
-  incomingRelationships CustomerRelationship[] @relation("CustomerRelationshipTarget")
+  addresses               CustomerAddress[]
+  vehicles                Vehicle[]
+  vehicleOwnerships       VehicleOwnershipHistory[]
+  workOrders              WorkOrder[]
+  vehicleCheckIns         VehicleCheckIn[]
+  identityProfile         CustomerIdentityProfile?
+  contacts                CustomerContact[]
+  fiscalProfile           CustomerFiscalProfile?
+  outgoingRelationships   CustomerRelationship[]           @relation("CustomerRelationshipSource")
+  incomingRelationships   CustomerRelationship[]           @relation("CustomerRelationshipTarget")
   communicationPreference CustomerCommunicationPreference?
-  consents          CustomerConsent[]
+  consents                CustomerConsent[]
 
   @@unique([id, companyId])
   @@index([companyId, name])
@@ -361,14 +373,16 @@ model Vehicle {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  company          Company                   @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  customer         Customer                  @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
-  originBranch     Branch?                   @relation("VehicleOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
-  history          VehicleHistoryEvent[]
-  ownerships       VehicleOwnershipHistory[]
-  odometerReadings VehicleOdometerReading[]
-  workOrders       WorkOrder[]
-  vehicleCheckIns  VehicleCheckIn[]
+  company                Company                        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer               Customer                       @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  originBranch           Branch?                        @relation("VehicleOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
+  history                VehicleHistoryEvent[]
+  ownerships             VehicleOwnershipHistory[]
+  odometerReadings       VehicleOdometerReading[]
+  workOrders             WorkOrder[]
+  vehicleCheckIns        VehicleCheckIn[]
+  checkInDamages         CheckInDamage[]
+  preliminaryDiagnostics PreliminaryVehicleDiagnostic[]
 
   @@unique([id, companyId])
   @@index([companyId, customerId])
@@ -455,6 +469,9 @@ enum VehicleHistoryEventType {
   WORK_ORDER_OPENED
   CUSTOMER_CONCERN_RECORDED
   CHECK_IN_COMPLETED
+  DAMAGE_RECORDED
+  PDC_STARTED
+  PDC_COMPLETED
   WORK_ORDER_CLOSED_NO_SERVICE
   WORK_ORDER_COMPLETED
   WORK_ORDER_CANCELLED
@@ -500,18 +517,18 @@ model CustomerAddress {
   companyId  String @db.Uuid
   customerId String @db.Uuid
 
-  label        String? @db.VarChar(80)
+  label        String?             @db.VarChar(80)
   type         CustomerAddressType @default(OTHER)
-  postalCode   String? @db.VarChar(20)
-  street       String  @db.VarChar(180)
-  number       String? @db.VarChar(30)
-  complement   String? @db.VarChar(120)
-  neighborhood String? @db.VarChar(120)
-  city         String  @db.VarChar(120)
-  state        String  @db.VarChar(40)
-  country      String  @default("BR") @db.VarChar(2)
-  reference    String? @db.VarChar(180)
-  ibgeCode     String? @db.VarChar(7)
+  postalCode   String?             @db.VarChar(20)
+  street       String              @db.VarChar(180)
+  number       String?             @db.VarChar(30)
+  complement   String?             @db.VarChar(120)
+  neighborhood String?             @db.VarChar(120)
+  city         String              @db.VarChar(120)
+  state        String              @db.VarChar(40)
+  country      String              @default("BR") @db.VarChar(2)
+  reference    String?             @db.VarChar(180)
+  ibgeCode     String?             @db.VarChar(7)
 
   isPrimary Boolean @default(false)
 
@@ -519,8 +536,8 @@ model CustomerAddress {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
+  company        Company                 @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer       Customer                @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Cascade)
   fiscalProfiles CustomerFiscalProfile[]
 
   @@unique([id, companyId])
@@ -564,17 +581,17 @@ enum ContactVerificationSource {
 }
 
 model CustomerIdentityProfile {
-  id                    String   @id @default(uuid()) @db.Uuid
-  companyId             String   @db.Uuid
-  customerId            String   @db.Uuid
-  rgNumber               String?  @db.VarChar(40)
-  rgIssuer               String?  @db.VarChar(40)
-  rgIssuerState          String?  @db.VarChar(2)
-  rgIssuedAt             DateTime? @db.Date
-  socialName             String?  @db.VarChar(180)
-  nationality            String?  @db.VarChar(80)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id            String    @id @default(uuid()) @db.Uuid
+  companyId     String    @db.Uuid
+  customerId    String    @db.Uuid
+  rgNumber      String?   @db.VarChar(40)
+  rgIssuer      String?   @db.VarChar(40)
+  rgIssuerState String?   @db.VarChar(2)
+  rgIssuedAt    DateTime? @db.Date
+  socialName    String?   @db.VarChar(180)
+  nationality   String?   @db.VarChar(80)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
   customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
@@ -585,21 +602,21 @@ model CustomerIdentityProfile {
 }
 
 model CustomerContact {
-  id                 String                    @id @default(uuid()) @db.Uuid
-  companyId          String                    @db.Uuid
-  customerId         String                    @db.Uuid
+  id                 String                     @id @default(uuid()) @db.Uuid
+  companyId          String                     @db.Uuid
+  customerId         String                     @db.Uuid
   type               CustomerContactType
-  label              String?                   @db.VarChar(80)
-  value              String                    @db.VarChar(180)
-  normalizedValue    String                    @db.VarChar(180)
-  purpose            CustomerContactPurpose    @default(PERSONAL)
-  isPrimary          Boolean                   @default(false)
-  isVerified         Boolean                   @default(false)
+  label              String?                    @db.VarChar(80)
+  value              String                     @db.VarChar(180)
+  normalizedValue    String                     @db.VarChar(180)
+  purpose            CustomerContactPurpose     @default(PERSONAL)
+  isPrimary          Boolean                    @default(false)
+  isVerified         Boolean                    @default(false)
   verifiedAt         DateTime?
   verificationSource ContactVerificationSource?
-  isActive           Boolean                   @default(true)
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
+  isActive           Boolean                    @default(true)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
 
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
   customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
@@ -617,19 +634,19 @@ enum TaxpayerIndicator {
 }
 
 model CustomerFiscalProfile {
-  id                    String             @id @default(uuid()) @db.Uuid
-  companyId             String             @db.Uuid
-  customerId            String             @db.Uuid
-  taxpayerIndicator     TaxpayerIndicator  @default(UNKNOWN)
-  stateRegistration     String?            @db.VarChar(40)
-  municipalRegistration String?            @db.VarChar(40)
-  fiscalAddressId       String?            @db.Uuid
-  notes                 String?            @db.Text
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  id                    String            @id @default(uuid()) @db.Uuid
+  companyId             String            @db.Uuid
+  customerId            String            @db.Uuid
+  taxpayerIndicator     TaxpayerIndicator @default(UNKNOWN)
+  stateRegistration     String?           @db.VarChar(40)
+  municipalRegistration String?           @db.VarChar(40)
+  fiscalAddressId       String?           @db.Uuid
+  notes                 String?           @db.Text
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
-  company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  company       Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer      Customer         @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
   fiscalAddress CustomerAddress? @relation(fields: [fiscalAddressId, companyId, customerId], references: [id, companyId, customerId], onDelete: Restrict)
 
   @@unique([id, companyId])
@@ -678,17 +695,17 @@ enum CustomerPreferredChannel {
 }
 
 model CustomerCommunicationPreference {
-  id                      String                   @id @default(uuid()) @db.Uuid
-  companyId               String                   @db.Uuid
-  customerId              String                   @db.Uuid
-  preferredChannel        CustomerPreferredChannel @default(NONE)
-  acceptsOperationalCalls Boolean                  @default(true)
-  acceptsOperationalWhatsapp Boolean               @default(true)
-  acceptsOperationalEmail Boolean                  @default(true)
-  preferredTime           String?                  @db.VarChar(120)
-  notes                   String?                  @db.Text
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  id                         String                   @id @default(uuid()) @db.Uuid
+  companyId                  String                   @db.Uuid
+  customerId                 String                   @db.Uuid
+  preferredChannel           CustomerPreferredChannel @default(NONE)
+  acceptsOperationalCalls    Boolean                  @default(true)
+  acceptsOperationalWhatsapp Boolean                  @default(true)
+  acceptsOperationalEmail    Boolean                  @default(true)
+  preferredTime              String?                  @db.VarChar(120)
+  notes                      String?                  @db.Text
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
 
   company  Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
   customer Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
@@ -743,9 +760,9 @@ model CustomerConsent {
   recordedBy User     @relation("CustomerConsentRecorder", fields: [recordedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
 
   @@unique([id, companyId])
+  @@unique([companyId, customerId, operationKey])
   @@index([companyId, customerId, type, createdAt])
   @@index([companyId, status, createdAt])
-  @@unique([companyId, customerId, operationKey])
 }
 
 enum WorkOrderPurpose {
@@ -808,13 +825,16 @@ model WorkOrder {
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 
-  company   Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  branch    Branch            @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
-  customer  Customer          @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
-  vehicle   Vehicle           @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
-  attendant User              @relation("WorkOrderAttendant", fields: [attendantUserId, companyId], references: [id, companyId], onDelete: Restrict)
-  concerns  CustomerConcern[]
-  checkIn   VehicleCheckIn?
+  company                Company                        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  branch                 Branch                         @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
+  customer               Customer                       @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  vehicle                Vehicle                        @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  attendant              User                           @relation("WorkOrderAttendant", fields: [attendantUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  concerns               CustomerConcern[]
+  checkIn                VehicleCheckIn?
+  checklistInstances     ChecklistInstance[]
+  checkInDamages         CheckInDamage[]
+  preliminaryDiagnostics PreliminaryVehicleDiagnostic[]
 
   @@unique([id, companyId])
   @@unique([id, companyId, branchId, customerId, vehicleId], map: "WorkOrder_intake_identity_key")
@@ -885,15 +905,323 @@ model VehicleCheckIn {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
-  company   Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  branch    Branch    @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
-  workOrder WorkOrder @relation(fields: [workOrderId, companyId, branchId, customerId, vehicleId], references: [id, companyId, branchId, customerId, vehicleId], onDelete: Restrict, map: "VehicleCheckIn_work_order_fkey")
-  vehicle   Vehicle   @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
-  customer  Customer  @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
-  createdBy User      @relation("VehicleCheckInCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  company           Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  branch            Branch             @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
+  workOrder         WorkOrder          @relation(fields: [workOrderId, companyId, branchId, customerId, vehicleId], references: [id, companyId, branchId, customerId, vehicleId], onDelete: Restrict, map: "VehicleCheckIn_work_order_fkey")
+  vehicle           Vehicle            @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  customer          Customer           @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  createdBy         User               @relation("VehicleCheckInCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  checklistInstance ChecklistInstance?
+  damages           CheckInDamage[]
 
   @@unique([id, companyId])
   @@unique([workOrderId, companyId, branchId, customerId, vehicleId], map: "VehicleCheckIn_work_order_key")
   @@index([companyId, vehicleId, startedAt])
   @@index([companyId, status, startedAt])
+}
+
+enum ChecklistTemplateType {
+  CHECK_IN
+  PDC
+  ROAD_TEST_INITIAL
+  ROAD_TEST_FINAL
+  DELIVERY
+  MECHANICAL_INSPECTION
+  ELECTRICAL_INSPECTION
+  DETAILING
+  BODY_SHOP
+  TIRES
+  CUSTOM
+}
+
+enum ChecklistResponseType {
+  STATUS
+  BOOLEAN
+  TEXT
+  NUMBER
+  SELECT
+  MULTI_SELECT
+  MEASUREMENT
+  PHOTO
+  SIGNATURE
+}
+
+enum ChecklistObservationStatus {
+  OK
+  ISSUE
+  NOT_CHECKED
+  NOT_APPLICABLE
+}
+
+enum ChecklistInstanceStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+model ChecklistTemplate {
+  id          String                @id @default(uuid()) @db.Uuid
+  companyId   String?               @db.Uuid
+  name        String                @db.VarChar(160)
+  description String?               @db.Text
+  type        ChecklistTemplateType
+  version     Int
+  isActive    Boolean               @default(true)
+  isDefault   Boolean               @default(false)
+  isSystem    Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  company   Company?                   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sections  ChecklistTemplateSection[]
+  instances ChecklistInstance[]
+
+  @@unique([id, version])
+  @@unique([companyId, type, version, name])
+  @@index([companyId, type, isActive])
+}
+
+model ChecklistTemplateSection {
+  id          String   @id @default(uuid()) @db.Uuid
+  templateId  String   @db.Uuid
+  title       String   @db.VarChar(160)
+  description String?  @db.Text
+  order       Int
+  createdAt   DateTime @default(now())
+
+  template ChecklistTemplate       @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  items    ChecklistTemplateItem[]
+
+  @@unique([templateId, order])
+}
+
+model ChecklistTemplateItem {
+  id                   String                @id @default(uuid()) @db.Uuid
+  sectionId            String                @db.Uuid
+  title                String                @db.VarChar(180)
+  description          String?               @db.Text
+  responseType         ChecklistResponseType
+  order                Int
+  isRequired           Boolean               @default(false)
+  requiresPhoto        Boolean               @default(false)
+  photoRequiredOnIssue Boolean               @default(false)
+  allowNotes           Boolean               @default(true)
+  active               Boolean               @default(true)
+  options              Json?
+  createdAt            DateTime              @default(now())
+
+  section ChecklistTemplateSection @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  results ChecklistItemResult[]
+
+  @@unique([sectionId, order])
+}
+
+model ChecklistInstance {
+  id              String                  @id @default(uuid()) @db.Uuid
+  companyId       String                  @db.Uuid
+  workOrderId     String                  @db.Uuid
+  checkInId       String                  @db.Uuid
+  templateId      String                  @db.Uuid
+  templateVersion Int
+  status          ChecklistInstanceStatus @default(DRAFT)
+  startedAt       DateTime                @default(now())
+  completedAt     DateTime?
+  createdByUserId String                  @db.Uuid
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  company   Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  workOrder WorkOrder             @relation(fields: [workOrderId, companyId], references: [id, companyId], onDelete: Restrict)
+  checkIn   VehicleCheckIn        @relation(fields: [checkInId, companyId], references: [id, companyId], onDelete: Restrict)
+  template  ChecklistTemplate     @relation(fields: [templateId, templateVersion], references: [id, version], onDelete: Restrict)
+  createdBy User                  @relation("ChecklistInstanceCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  results   ChecklistItemResult[]
+
+  @@unique([id, companyId])
+  @@unique([checkInId, companyId])
+  @@index([companyId, workOrderId])
+}
+
+model ChecklistItemResult {
+  id                String                      @id @default(uuid()) @db.Uuid
+  companyId         String                      @db.Uuid
+  instanceId        String                      @db.Uuid
+  itemId            String                      @db.Uuid
+  status            ChecklistObservationStatus?
+  textValue         String?                     @db.Text
+  numericValue      Decimal?                    @db.Decimal(14, 3)
+  selectedValue     String?                     @db.VarChar(240)
+  note              String?                     @db.Text
+  completedByUserId String                      @db.Uuid
+  completedAt       DateTime                    @default(now())
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  company     Company               @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  instance    ChecklistInstance     @relation(fields: [instanceId, companyId], references: [id, companyId], onDelete: Restrict)
+  item        ChecklistTemplateItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  completedBy User                  @relation("ChecklistResultCompleter", fields: [completedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([companyId, instanceId, itemId])
+}
+
+enum CheckInDamageLocation {
+  FRONT_BUMPER
+  REAR_BUMPER
+  HOOD
+  ROOF
+  TRUNK_LID
+  FRONT_LEFT_FENDER
+  FRONT_RIGHT_FENDER
+  REAR_LEFT_QUARTER
+  REAR_RIGHT_QUARTER
+  FRONT_LEFT_DOOR
+  FRONT_RIGHT_DOOR
+  REAR_LEFT_DOOR
+  REAR_RIGHT_DOOR
+  LEFT_MIRROR
+  RIGHT_MIRROR
+  WINDSHIELD
+  REAR_GLASS
+  LEFT_FRONT_GLASS
+  RIGHT_FRONT_GLASS
+  LEFT_REAR_GLASS
+  RIGHT_REAR_GLASS
+  FRONT_LEFT_WHEEL
+  FRONT_RIGHT_WHEEL
+  REAR_LEFT_WHEEL
+  REAR_RIGHT_WHEEL
+  INTERIOR
+  DASHBOARD
+  TRUNK
+  OTHER
+}
+
+enum CheckInDamageType {
+  SCRATCH
+  SCUFF
+  DENT
+  CRACK
+  BROKEN
+  MISSING
+  WORN
+  STAIN
+  CHIPPED
+  DAMAGED
+  OTHER
+}
+
+enum CheckInDamageSeverity {
+  MINOR
+  MODERATE
+  SEVERE
+}
+
+model CheckInDamage {
+  id               String                @id @default(uuid()) @db.Uuid
+  companyId        String                @db.Uuid
+  workOrderId      String                @db.Uuid
+  checkInId        String                @db.Uuid
+  vehicleId        String                @db.Uuid
+  location         CheckInDamageLocation
+  damageType       CheckInDamageType
+  severity         CheckInDamageSeverity
+  description      String?               @db.Text
+  observedAt       DateTime              @default(now())
+  observedByUserId String                @db.Uuid
+  operationKey     String?               @db.VarChar(120)
+  createdAt        DateTime              @default(now())
+
+  company    Company        @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  workOrder  WorkOrder      @relation(fields: [workOrderId, companyId], references: [id, companyId], onDelete: Restrict)
+  checkIn    VehicleCheckIn @relation(fields: [checkInId, companyId], references: [id, companyId], onDelete: Restrict)
+  vehicle    Vehicle        @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  observedBy User           @relation("CheckInDamageObserver", fields: [observedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([companyId, checkInId, operationKey])
+  @@index([companyId, workOrderId, observedAt])
+}
+
+enum PreliminaryDiagnosticStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum PdcFindingCategory {
+  BRAKES
+  SUSPENSION
+  STEERING
+  ENGINE
+  TRANSMISSION
+  ELECTRICAL
+  BATTERY
+  TIRES
+  AIR_CONDITIONING
+  FLUIDS
+  BODY
+  INTERIOR
+  SAFETY
+  OTHER
+}
+
+enum PdcFindingSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model PreliminaryVehicleDiagnostic {
+  id               String                      @id @default(uuid()) @db.Uuid
+  companyId        String                      @db.Uuid
+  branchId         String                      @db.Uuid
+  workOrderId      String                      @db.Uuid
+  vehicleId        String                      @db.Uuid
+  technicianUserId String                      @db.Uuid
+  status           PreliminaryDiagnosticStatus @default(DRAFT)
+  startedAt        DateTime                    @default(now())
+  completedAt      DateTime?
+  mileage          Int?
+  generalNotes     String?                     @db.Text
+  operationKey     String?                     @db.VarChar(120)
+  findingCounter   Int                         @default(0)
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+
+  company    Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  branch     Branch       @relation(fields: [branchId, companyId], references: [id, companyId], onDelete: Restrict)
+  workOrder  WorkOrder    @relation(fields: [workOrderId, companyId], references: [id, companyId], onDelete: Restrict)
+  vehicle    Vehicle      @relation(fields: [vehicleId, companyId], references: [id, companyId], onDelete: Restrict)
+  technician User         @relation("PdcTechnician", fields: [technicianUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  findings   PdcFinding[]
+
+  @@unique([id, companyId])
+  @@unique([companyId, workOrderId, operationKey])
+  @@index([companyId, workOrderId, status])
+}
+
+model PdcFinding {
+  id                         String                     @id @default(uuid()) @db.Uuid
+  companyId                  String                     @db.Uuid
+  pdcId                      String                     @db.Uuid
+  category                   PdcFindingCategory
+  location                   CheckInDamageLocation?
+  status                     ChecklistObservationStatus @default(ISSUE)
+  severity                   PdcFindingSeverity
+  description                String                     @db.Text
+  recommendation             String?                    @db.Text
+  requiresImmediateAttention Boolean                    @default(false)
+  sequence                   Int
+  createdByUserId            String                     @db.Uuid
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+
+  company   Company                      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  pdc       PreliminaryVehicleDiagnostic @relation(fields: [pdcId, companyId], references: [id, companyId], onDelete: Restrict)
+  createdBy User                         @relation("PdcFindingCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@unique([companyId, pdcId, sequence])
 }

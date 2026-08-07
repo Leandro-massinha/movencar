@@ -19,8 +19,8 @@ Uma consulta por telefone não cria OS. Quando ServiceVisit for implementado, re
 
 ## Classificação desta etapa
 
-Implementado agora: WorkOrder, sequência, idempotência, CustomerConcern, Check-in em rascunho/conclusão, encerramento sem serviço, timeline, AuditLog e odômetro.
+Implementado agora: WorkOrder, sequência, idempotência, CustomerConcern, Check-in com checklist versionado, mapa de avarias, PDC em rascunho/conclusão, timeline, AuditLog e odômetro.
 
-Preparado: PDC, teste inicial/final, checklist versionado, avarias, evidências, confirmação, snapshots, retificações e relatório de entrada.
+Preparado: tipos avançados de resposta/evidência, teste inicial/final, confirmação, snapshots, retificações e relatório de entrada.
 
 Adiado: orçamento completo, aprovação, execução, estoque, financeiro, fiscal, CRM funcional, comunicação, portal, BI e diagnóstico eletrônico.

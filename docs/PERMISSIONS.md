@@ -16,7 +16,7 @@ O frontend oculta navegacao e protege rotas para UX. O backend continua sendo a 
 
 Propriedade e odômetro fazem parte de Vehicles: as consultas usam `vehicles.view` e a troca atual continua protegida por `vehicles.update`. Atendimento presencial, OS, relato e Check-in pertencem ao módulo `workshop`.
 
-A fundação de entrada implementa `work_orders.view`, `work_orders.create`, `work_orders.close`, `customer_concerns.create`, `checkins.view`, `checkins.create`, `checkins.update` e `checkins.complete`, sempre após `requireModule('workshop')`. Não existem ainda `work_orders.update` nem `checkins.confirm`, pois não há operação funcional segura correspondente. PDC e road test permanecem sem permissões até suas APIs existirem.
+A entrada implementa `work_orders.view`, `work_orders.create`, `work_orders.close`, `customer_concerns.create`, `checkins.view`, `checkins.create`, `checkins.update`, `checkins.complete`, `pdc.view`, `pdc.create`, `pdc.update` e `pdc.complete`, sempre após `requireModule('workshop')`. Não existem `work_orders.update`, `checkins.confirm`, permissões de road test ou `checklists.manage`, pois ainda não há operação/interface administrativa segura correspondente.
 
 ## Modulo versus permissao
 

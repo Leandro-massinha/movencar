@@ -4,13 +4,13 @@
 
 Check-in é fotografia documental da entrada, não diagnóstico. `CustomerConcern`, `CheckInObservation` e `DiagnosticFinding` são fontes distintas e nunca sobrescrevem umas às outras.
 
-## Agregado planejado
+## Agregado funcional
 
-`VehicleCheckIn` implementado pertence a WorkOrder, Vehicle, Customer, Company e Branch por uma FK composta que garante a mesma entrada. Estados: `DRAFT`, `COMPLETED`, `CONFIRMED`, `CANCELLED`. Nesta etapa existem APIs somente para criar/editar rascunho e concluir. Quilometragem cria `VehicleOdometerReading`; combustível é percentual inteiro de 0 a 100 para precisão e UX por marcadores. Conclusão congela os campos atuais. Confirmação permanece bloqueada até snapshot/versionamento serem implementados.
+`VehicleCheckIn` pertence a WorkOrder, Vehicle, Customer, Company e Branch por uma FK composta. Estados: `DRAFT`, `COMPLETED`, `CONFIRMED`, `CANCELLED`. APIs criam/editam rascunho, respostas, avarias e concluem. Quilometragem cria `VehicleOdometerReading`; combustível é percentual inteiro de 0 a 100. Conclusão por CAS congela campos, checklist e avarias na mesma transação. Confirmação permanece reservada para snapshot/assinatura.
 
 ## Checklist configurável
 
-- `ChecklistTemplate`: empresa, tipo, nome, versão, status, padrão e aplicabilidade;
+- `ChecklistTemplate`: global de sistema ou específico da empresa, tipo, nome, versão, atividade e padrão;
 - seções e itens versionados, ordenados e nunca alterados retroativamente após uso;
 - instância vinculada ao check-in com snapshot das perguntas relevantes;
 - tipos de resposta: `STATUS`, `TEXT`, `NUMBER`, `PHOTO`, `SELECT`, `MULTI_SELECT`, `MEASUREMENT`, `SIGNATURE`;

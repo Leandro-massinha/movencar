@@ -5,11 +5,18 @@ import { authenticate, requirePermission } from "../auth/auth.middleware.js";
 import { requireModule } from "../platform/module-gate.js";
 import {
   closeWorkOrderSchema,
+  checklistResultParamsSchema,
+  checklistResultSchema,
   createCheckInSchema,
   createConcernSchema,
+  createDamageSchema,
+  createPdcSchema,
+  findingParamsSchema,
   createWorkOrderSchema,
   idempotencyKeySchema,
   listWorkOrdersSchema,
+  pdcFindingSchema,
+  updatePdcSchema,
   updateCheckInSchema,
   workOrderIdSchema,
 } from "./work-orders.schemas.js";
@@ -53,11 +60,131 @@ workOrdersRouter.post(
   ),
 );
 workOrdersRouter.get(
+  "/:id/check-in/workspace",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res.json(await service.getCheckInWorkspace(req.auth!.companyId, id));
+  }),
+);
+workOrdersRouter.put(
+  "/:id/check-in/checklist/items/:itemId",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id, itemId } = checklistResultParamsSchema.parse(req.params);
+    res.json({
+      result: await service.saveChecklistResult(
+        actor(req),
+        id,
+        itemId,
+        checklistResultSchema.parse(req.body),
+      ),
+    });
+  }),
+);
+workOrdersRouter.post(
+  "/:id/check-in/damages",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res
+      .status(201)
+      .json({
+        damage: await service.createDamage(
+          actor(req),
+          id,
+          createDamageSchema.parse(req.body),
+          idempotencyKeySchema.parse(req.get("idempotency-key")),
+        ),
+      });
+  }),
+);
+workOrdersRouter.get(
+  "/:id/pdc",
+  requirePermission("pdc.view"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res.json(await service.getPdcWorkspace(req.auth!.companyId, id));
+  }),
+);
+workOrdersRouter.post(
+  "/:id/pdc",
+  requirePermission("pdc.create"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res
+      .status(201)
+      .json({
+        pdc: await service.createPdc(
+          actor(req),
+          id,
+          createPdcSchema.parse(req.body),
+          idempotencyKeySchema.parse(req.get("idempotency-key")),
+        ),
+      });
+  }),
+);
+workOrdersRouter.patch(
+  "/:id/pdc",
+  requirePermission("pdc.update"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res.json({
+      pdc: await service.updatePdc(
+        actor(req),
+        id,
+        updatePdcSchema.parse(req.body),
+      ),
+    });
+  }),
+);
+workOrdersRouter.post(
+  "/:id/pdc/findings",
+  requirePermission("pdc.update"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res
+      .status(201)
+      .json({
+        finding: await service.createPdcFinding(
+          actor(req),
+          id,
+          pdcFindingSchema.parse(req.body),
+        ),
+      });
+  }),
+);
+workOrdersRouter.put(
+  "/:id/pdc/findings/:findingId",
+  requirePermission("pdc.update"),
+  asyncHandler(async (req, res) => {
+    const { id, findingId } = findingParamsSchema.parse(req.params);
+    res.json({
+      finding: await service.updatePdcFinding(
+        actor(req),
+        id,
+        findingId,
+        pdcFindingSchema.parse(req.body),
+      ),
+    });
+  }),
+);
+workOrdersRouter.post(
+  "/:id/pdc/complete",
+  requirePermission("pdc.complete"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res.json({ pdc: await service.completePdc(actor(req), id) });
+  }),
+);
+workOrdersRouter.get(
   "/:id",
   requirePermission("work_orders.view"),
   asyncHandler(async (req, res) => {
     const { id } = workOrderIdSchema.parse(req.params);
-    res.json({ workOrder: await service.getWorkOrder(req.auth!.companyId, id) });
+    res.json({
+      workOrder: await service.getWorkOrder(req.auth!.companyId, id),
+    });
   }),
 );
 workOrdersRouter.post(

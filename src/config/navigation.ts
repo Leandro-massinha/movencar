@@ -68,7 +68,7 @@ export const navigation = [
     label: "Ordens de Serviço",
     path: "/ordens-servico",
     icon: ClipboardList,
-    permission: "orders.view",
+    permission: "work_orders.view",
     module: "workshop",
   },
   {

@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const routes = readFileSync(
-  new URL(
-    "../src/modules/work-orders/work-orders.routes.ts",
-    import.meta.url,
-  ),
+  new URL("../src/modules/work-orders/work-orders.routes.ts", import.meta.url),
   "utf8",
 );
 
@@ -25,6 +22,10 @@ describe("work order route authorization", () => {
       "checkins.create",
       "checkins.update",
       "checkins.complete",
+      "pdc.view",
+      "pdc.create",
+      "pdc.update",
+      "pdc.complete",
     ])
       expect(routes).toContain(permission);
   });

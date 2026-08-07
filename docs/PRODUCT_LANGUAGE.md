@@ -57,6 +57,8 @@ Português do Brasil (`pt-BR`) é o idioma oficial da experiência do usuário. 
 
 CRM, PIX, WhatsApp, NF-e, NFC-e, NFS-e, RENAVAM e Check-in permanecem por serem termos consolidados. `Checklist` é apresentado como “Lista de Verificação” em navegação destinada ao usuário geral.
 
+Estados da Lista de Verificação são sempre “OK”, “Anormalidade”, “Não verificado” e “Não aplicável”. Severidade de avaria usa “Leve”, “Moderada” e “Grave”; prioridade do PDC usa “Baixa”, “Média”, “Alta” e “Crítica”.
+
 ## Escrita e ações
 
 Use frases diretas, acentuação correta e verbos consistentes: Novo, Adicionar, Salvar, Salvar alterações, Cancelar, Excluir, Editar, Visualizar, Pesquisar, Filtrar, Limpar filtros, Anterior, Próxima, Voltar, Fechar, Confirmar, Continuar, Entrar e Sair.
