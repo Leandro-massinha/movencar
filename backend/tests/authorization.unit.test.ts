@@ -5,4 +5,6 @@ describe('permission middleware', () => {
   it('allows users with every required permission', () => { const next = vi.fn(); requirePermission('tenant.read')({ auth: { permissions: ['tenant.read'] } } as any, {} as any, next); expect(next).toHaveBeenCalledWith() })
   it('denies a missing permission with 403', () => { const next = vi.fn(); requirePermission('tenant.write')({ auth: { permissions: ['tenant.read'] } } as any, {} as any, next); expect(next.mock.calls[0][0]).toMatchObject({ status: 403, code: 'FORBIDDEN' }) })
   it('denies an unauthenticated request', () => { const next = vi.fn(); requirePermission('tenant.read')({} as any, {} as any, next); expect(next.mock.calls[0][0]).toMatchObject({ status: 403 }) })
+  it('denies users without customers.view', () => { const next = vi.fn(); requirePermission('customers.view')({ auth: { permissions: ['dashboard.view'] } } as any, {} as any, next); expect(next.mock.calls[0][0]).toMatchObject({ status: 403, code: 'FORBIDDEN' }) })
+  it('denies users without customers.create', () => { const next = vi.fn(); requirePermission('customers.create')({ auth: { permissions: ['customers.view'] } } as any, {} as any, next); expect(next.mock.calls[0][0]).toMatchObject({ status: 403, code: 'FORBIDDEN' }) })
 })

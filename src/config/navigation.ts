@@ -5,7 +5,7 @@ export const navigation = [
   { group:'OPERACAO', label:'Visao geral', path:'/', icon:LayoutDashboard, permission:'dashboard.view' },
   { group:'OPERACAO', label:'Agenda', path:'/agenda', icon:CalendarDays, permission:'agenda.view' },
   { group:'OPERACAO', label:'Patio', path:'/patio', icon:Warehouse, permission:'yard.view' },
-  { group:'OFICINA', label:'Clientes', path:'/crm', icon:UsersRound, permission:'crm.view' },
+  { group:'OFICINA', label:'Clientes', path:'/clientes', icon:UsersRound, permission:'customers.view' },
   { group:'OFICINA', label:'Veiculos', path:'/veiculos', icon:CarFront, permission:'vehicles.view' },
   { group:'OFICINA', label:'Checklists', path:'/checklists', icon:FileCheck2, permission:'orders.view' },
   { group:'OFICINA', label:'Ordens de servico', path:'/ordens-servico', icon:ClipboardList, permission:'orders.view' },

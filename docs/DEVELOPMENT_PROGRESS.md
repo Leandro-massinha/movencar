@@ -2,6 +2,37 @@
 
 Última atualização: 07/08/2026
 
+## Módulo Clientes concluído
+
+### Auditoria de segurança do Pull Request #2
+
+Revisão pré-merge concluída em 07/08/2026, sem realizar merge. Foram corrigidos:
+
+- atualização de endereço que, após a leitura protegida, ainda executava o `UPDATE` final somente por `id`; agora escrita e releitura exigem `id + companyId + customerId + deletedAt`;
+- possibilidade de alterar o tipo do cliente e manter CPF/CNPJ com comprimento incompatível;
+- relação de filial de origem reforçada no PostgreSQL por chave estrangeira composta `originBranchId + companyId`, além da validação de filial ativa no serviço;
+- regressão do modo demonstrativo: a página Clientes agora respeita `VITE_USE_MOCKS=true` sem chamar uma API autenticada;
+- cadastro frontend deixou de enviar os identificadores demonstrativos `matriz`/`norte` como se fossem UUIDs de filial;
+- documentação da matriz de permissões atualizada com `customers.*`.
+
+A migration incremental `20260807143000_harden_customer_tenancy` foi aplicada e validada. Foram adicionados testes sobre as queries reais do serviço para isolamento de endereço e transição de documento, além de teste do modo mock no frontend. Resultado da auditoria: backend com 42 testes e frontend com 10 testes; lint e builds aprovados nos dois projetos.
+
+- Schema Prisma auditado com `Customer`, `CustomerAddress`, `CustomerType` e `CustomerStatus`.
+- Migration `20260807110000_add_customers` criada, revisada e aplicada com chaves estrangeiras, índices de busca e chave composta de tenant para endereços.
+- Documento normalizado para dígitos e único por empresa somente entre registros ativos por índice parcial PostgreSQL, permitindo recadastro após soft delete.
+- Índice parcial garante somente um endereço principal ativo por cliente, reforçado por transações na API.
+- API REST implementada em `/api/customers`, incluindo CRUD, busca, filtros, ordenação, paginação (máximo 100), endereços e soft delete.
+- Todas as consultas de clientes e endereços usam `req.auth.companyId`; filial de origem é validada como ativa e pertencente ao tenant.
+- Permissões `customers.view`, `customers.create`, `customers.update` e `customers.delete` adicionadas ao seed e aplicadas às rotas.
+- Auditoria transacional adicionada para criação, atualização e exclusão de clientes e endereços.
+- Página Clientes conectada à API real com busca, filtros, tabela, paginação, cadastro e exclusão, preservando o design system. Nenhuma dependência de Veículos foi criada.
+- Testes específicos cobrem validação, documentos, isolamento Empresa A x Empresa B, permissões, filial, unicidade, soft delete, paginação, busca e endereço principal.
+- Validação final: backend com 39 testes; frontend com 9 testes; Prisma generate, lint e builds aprovados.
+
+Arquivos centrais: `backend/src/modules/customers/*`, `backend/prisma/schema.prisma`, migration `add_customers`, `backend/prisma/seed.ts`, `src/pages/CustomersPage.tsx` e `src/services/customers.ts`.
+
+Próxima etapa planejada: abrir Pull Request de `feature/customers` para `develop`. Veículos permanece pendente para uma etapa própria.
+
 ## Objetivo do projeto
 
 MovenCar é um SaaS multiempresa para gestão completa de oficinas mecânicas, com isolamento rigoroso de dados por empresa e filial.
