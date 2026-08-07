@@ -6,6 +6,8 @@ Eventos internos desacoplarão efeitos entre módulos dentro do monólito. Envel
 
 Exemplos futuros: `WORK_ORDER_COMPLETED`, `SALE_COMPLETED`, `PAYMENT_RECEIVED`, `VEHICLE_CHECKED_IN`, `VEHICLE_RELEASED` e `INVOICE_ISSUED`. Vehicle History, Inventory, Finance, CRM, Warranty e Communication poderão consumir esses contratos sem o produtor importar seus serviços.
 
+O prontuário acrescenta contratos planejados `VEHICLE_OWNER_CHANGED`, `ODOMETER_RECORDED`, `SERVICE_VISIT_OPENED`, `CUSTOMER_CONCERN_RECORDED`, `CHECK_IN_STARTED`, `CHECK_IN_COMPLETED` e `CHECK_IN_CONFIRMED`. O produtor deve fornecer chave idempotente de origem. Atualização da projeção corrente, leitura de odômetro e evento essencial de timeline permanecem na mesma transação.
+
 ## Política de consistência
 
 - efeito obrigatório para a consistência da operação permanece na mesma transação;

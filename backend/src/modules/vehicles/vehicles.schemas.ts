@@ -114,6 +114,10 @@ export const updateVehicleSchema = z
     "Informe ao menos um campo.",
   );
 export const vehicleIdSchema = z.object({ id: z.string().uuid() });
+export const listVehicleRecordsSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+});
 export const listVehiclesSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -153,3 +157,4 @@ export const listVehiclesSchema = z.object({
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 export type UpdateVehicleInput = z.infer<typeof updateVehicleSchema>;
 export type ListVehiclesInput = z.infer<typeof listVehiclesSchema>;
+export type ListVehicleRecordsInput = z.infer<typeof listVehicleRecordsSchema>;

@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../lib/errors.js";
 import type {
   CreateVehicleInput,
+  ListVehicleRecordsInput,
   ListVehiclesInput,
   UpdateVehicleInput,
 } from "./vehicles.schemas.js";
@@ -88,6 +89,12 @@ function handleConflict(error: unknown): never {
     const target = String(
       (error.meta as { target?: unknown } | undefined)?.target ?? "",
     );
+    if (target.toLowerCase().includes("ownership"))
+      throw new AppError(
+        409,
+        "VEHICLE_OWNER_CONFLICT",
+        "O proprietário do veículo foi alterado por outra operação. Atualize os dados e tente novamente.",
+      );
     throw new AppError(
       409,
       target.toLowerCase().includes("chassis")
@@ -174,6 +181,81 @@ export async function getVehicle(companyId: string, id: string) {
     throw new AppError(404, "VEHICLE_NOT_FOUND", "Veículo não encontrado.");
   return vehicle;
 }
+export async function listVehicleOwnerships(
+  companyId: string,
+  vehicleId: string,
+  input: ListVehicleRecordsInput,
+) {
+  await getVehicle(companyId, vehicleId);
+  const where = { companyId, vehicleId };
+  const [data, total] = await prisma.$transaction([
+    prisma.vehicleOwnershipHistory.findMany({
+      where,
+      select: {
+        id: true,
+        ownershipType: true,
+        validFrom: true,
+        validUntil: true,
+        isCurrent: true,
+        notes: true,
+        createdAt: true,
+        customer: { select: { id: true, name: true, document: true } },
+        createdBy: { select: { name: true } },
+      },
+      orderBy: [{ validFrom: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+    }),
+    prisma.vehicleOwnershipHistory.count({ where }),
+  ]);
+  return {
+    data,
+    pagination: {
+      ...input,
+      total,
+      totalPages: Math.ceil(total / input.limit),
+    },
+  };
+}
+export async function listVehicleOdometerReadings(
+  companyId: string,
+  vehicleId: string,
+  input: ListVehicleRecordsInput,
+) {
+  await getVehicle(companyId, vehicleId);
+  const where = { companyId, vehicleId };
+  const [data, total] = await prisma.$transaction([
+    prisma.vehicleOdometerReading.findMany({
+      where,
+      select: {
+        id: true,
+        mileage: true,
+        recordedAt: true,
+        source: true,
+        notes: true,
+        createdAt: true,
+        branch: { select: { name: true } },
+        user: { select: { name: true } },
+      },
+      orderBy: [
+        { recordedAt: "desc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
+      skip: (input.page - 1) * input.limit,
+      take: input.limit,
+    }),
+    prisma.vehicleOdometerReading.count({ where }),
+  ]);
+  return {
+    data,
+    pagination: {
+      ...input,
+      total,
+      totalPages: Math.ceil(total / input.limit),
+    },
+  };
+}
 export async function createVehicle(
   actor: VehicleActor,
   input: CreateVehicleInput,
@@ -186,7 +268,19 @@ export async function createVehicle(
         data: { ...input, companyId: actor.companyId },
         select: vehicleSelect,
       });
-      await tx.vehicleHistoryEvent.create({
+      const now = new Date();
+      await tx.vehicleOwnershipHistory.create({
+        data: {
+          companyId: actor.companyId,
+          vehicleId: vehicle.id,
+          customerId: vehicle.customerId,
+          createdByUserId: actor.userId,
+          ownershipType: "OWNER",
+          validFrom: now,
+          isCurrent: true,
+        },
+      });
+      const history = await tx.vehicleHistoryEvent.create({
         data: {
           companyId: actor.companyId,
           vehicleId: vehicle.id,
@@ -198,10 +292,23 @@ export async function createVehicle(
           title: "Veículo cadastrado",
           description: `${vehicle.brand} ${vehicle.model}`,
           mileage: vehicle.currentMileage,
-          eventDate: new Date(),
+          eventDate: now,
           isManual: false,
         },
       });
+      if (vehicle.currentMileage != null)
+        await tx.vehicleOdometerReading.create({
+          data: {
+            companyId: actor.companyId,
+            vehicleId: vehicle.id,
+            branchId: actor.branchId,
+            userId: actor.userId,
+            mileage: vehicle.currentMileage,
+            recordedAt: now,
+            source: "VEHICLE",
+            sourceId: history.id,
+          },
+        });
       await tx.auditLog.create({
         data: auditData(actor, "VEHICLE_CREATE", vehicle.id, {
           customerId: vehicle.customerId,
@@ -242,11 +349,15 @@ export async function updateVehicle(
   await assertBranch(actor.companyId, input.originBranchId);
   try {
     return await prisma.$transaction(async (tx) => {
+      const now = new Date();
       const changed = await tx.vehicle.updateMany({
         where: {
           id,
           companyId: actor.companyId,
           deletedAt: null,
+          ...(input.customerId && input.customerId !== current.customerId
+            ? { customerId: current.customerId }
+            : {}),
           ...(typeof input.currentMileage === "number"
             ? {
                 OR: [
@@ -282,36 +393,93 @@ export async function updateVehicle(
             "VEHICLE_MILEAGE_DECREASE",
             "A quilometragem atual do veículo não pode ser reduzida.",
           );
+        if (
+          latest &&
+          input.customerId &&
+          input.customerId !== current.customerId &&
+          latest.customerId !== current.customerId
+        )
+          throw new AppError(
+            409,
+            "VEHICLE_OWNER_CONFLICT",
+            "O proprietário do veículo foi alterado por outra operação. Atualize os dados e tente novamente.",
+          );
         throw new AppError(404, "VEHICLE_NOT_FOUND", "Veículo não encontrado.");
       }
       const vehicle = await tx.vehicle.findFirstOrThrow({
         where: { id, companyId: actor.companyId, deletedAt: null },
         select: vehicleSelect,
       });
-      await tx.vehicleHistoryEvent.create({
+      if (input.customerId && input.customerId !== current.customerId) {
+        await tx.vehicleOwnershipHistory.updateMany({
+          where: {
+            companyId: actor.companyId,
+            vehicleId: id,
+            ownershipType: "OWNER",
+            isCurrent: true,
+          },
+          data: { isCurrent: false, validUntil: now },
+        });
+        await tx.vehicleOwnershipHistory.create({
+          data: {
+            companyId: actor.companyId,
+            vehicleId: id,
+            customerId: input.customerId,
+            createdByUserId: actor.userId,
+            ownershipType: "OWNER",
+            validFrom: now,
+            isCurrent: true,
+          },
+        });
+      }
+      const history = await tx.vehicleHistoryEvent.create({
         data: {
           companyId: actor.companyId,
           vehicleId: id,
           branchId: actor.branchId,
           actorUserId: actor.userId,
           eventType:
-            fields.length === 1 && fields[0] === "currentMileage"
+            fields.includes("customerId")
+              ? "OWNER_CHANGED"
+              : fields.length === 1 && fields[0] === "currentMileage"
               ? "MILEAGE_RECORDED"
               : "VEHICLE_UPDATED",
           sourceType: "VEHICLE",
           sourceId: id,
           title:
-            fields.length === 1 && fields[0] === "currentMileage"
+            fields.includes("customerId")
+              ? "Proprietário do veículo alterado"
+              : fields.length === 1 && fields[0] === "currentMileage"
               ? "Quilometragem atualizada"
               : "Dados do veículo atualizados",
           mileage: input.currentMileage,
-          eventDate: new Date(),
+          eventDate: now,
           metadata: { fields },
           isManual: false,
         },
       });
+      if (typeof input.currentMileage === "number")
+        await tx.vehicleOdometerReading.create({
+          data: {
+            companyId: actor.companyId,
+            vehicleId: id,
+            branchId: actor.branchId,
+            userId: actor.userId,
+            mileage: input.currentMileage,
+            recordedAt: now,
+            source: "VEHICLE",
+            sourceId: history.id,
+          },
+        });
       await tx.auditLog.create({
-        data: auditData(actor, "VEHICLE_UPDATE", id, { fields }),
+        data: auditData(
+          actor,
+          fields.includes("customerId")
+            ? "OWNERSHIP_CHANGE"
+            : "VEHICLE_UPDATE",
+          id,
+          { fields },
+        ),
       });
       return vehicle;
     });

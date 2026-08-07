@@ -12,6 +12,8 @@ O historico basico compartilha o entitlement comercial `vehicles`; ele nao possu
 
 O frontend oculta navegacao e protege rotas para UX. O backend continua sendo a autoridade e deve validar usuario, tenant, filial, recurso e acao em toda requisicao.
 
+Propriedade e odômetro fazem parte de Vehicles: as consultas usam `vehicles.view` e a troca atual continua protegida por `vehicles.update`. Quando Atendimento e Check-in forem funcionais, usarão o módulo `workshop` e o conjunto mínimo `service_visits.view/create/update/close`, `checkins.view/create/update/complete/confirm` e `customer_concerns.create`. Essas permissões planejadas não foram inseridas no seed antes das rotas existirem.
+
 ## Modulo versus permissao
 
 Permissao responde "este usuario pode executar a acao?". `CompanyModule` responde "esta empresa contratou e pode usar o dominio?". Endpoints comerciais exigem ambas as respostas positivas: `authenticate` → `requireModule(code)` → `requirePermission(action)`. Uma permissao existente nao contorna modulo inativo, suspenso, expirado ou ainda nao ativado.

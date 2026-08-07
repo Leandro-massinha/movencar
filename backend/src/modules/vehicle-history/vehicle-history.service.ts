@@ -127,6 +127,20 @@ export async function createManualHistory(
       },
       select: eventSelect,
     });
+    if (input.mileage != null)
+      await tx.vehicleOdometerReading.create({
+        data: {
+          companyId: actor.companyId,
+          vehicleId,
+          branchId,
+          userId: actor.userId,
+          mileage: input.mileage,
+          recordedAt: input.eventDate ?? new Date(),
+          source: "VEHICLE_HISTORY",
+          sourceId: event.id,
+          notes: input.title,
+        },
+      });
     if (
       input.mileage != null &&
       (vehicle.currentMileage == null || input.mileage > vehicle.currentMileage)

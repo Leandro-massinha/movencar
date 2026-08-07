@@ -3,8 +3,8 @@
 | Domínio | Responsabilidade | Dependências permitidas |
 | --- | --- | --- |
 | Core | empresa, filiais, usuários, auth, sessões, papéis, permissões, módulos, assinatura, gate, auditoria, arquivos, eventos e integrações | nenhuma comercial |
-| Customers | cadastro, endereços, contatos, preferências, consentimentos, tags e origens | Core |
-| Vehicles | veículo, histórico, quilometragem, fotos e propriedade futura | Core, Customers |
+| Customers | cadastro canônico, endereços, contatos, relações, preferências, consentimentos, tags e origens | Core |
+| Vehicles | veículo canônico, propriedade temporal, odômetro, timeline, componentes e prontuário | Core, Customers |
 | Workshop | agenda, recepção, check-in, checklist, diagnóstico, orçamento, aprovação, OS, execução, técnicos, boxes e saída | Customers, Vehicles, Catalog |
 | Catalog | produtos, serviços, categorias, marcas e listas de preço | Core |
 | Inventory | depósitos, saldos, locais, movimentos, reservas, transferências, inventários, perdas, lotes e séries | Catalog |
@@ -27,3 +27,5 @@
 | Integrations | adapters fiscais, pagamentos, comunicação, contabilidade, ERP, dados veiculares, catálogo e webhooks | contratos Core |
 
 Dependências inversas e circulares são proibidas. Integrações transversais devem usar interfaces ou eventos. Files é uma capacidade Core, não uma tabela de foto por módulo.
+
+Workshop será dono de ServiceVisit, CustomerConcern, Check-in, checklist, observações e diagnóstico. Customer e Vehicle não importam Workshop; suas visões 360° consultam projeções/fachadas de leitura.
