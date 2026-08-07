@@ -2,6 +2,24 @@
 
 Última atualização: 07/08/2026
 
+## Módulo Veículos concluído
+
+- Model `Vehicle` criado com status, cliente obrigatório, filial de origem opcional, placa, RENAVAM, chassi, identificação técnica, anos, combustível, transmissão, potência, portas, quilometragem atual, observações e soft delete.
+- A placa é armazenada somente na forma normalizada, evitando duplicidade entre `plate` e `plateNormalized`. São aceitos os formatos brasileiro antigo e Mercosul; veículo sem placa é permitido.
+- Migration `20260807170000_add_vehicles` versionada, revisada e aplicada. Inclui FKs compostas tenant-safe para `Customer` e `Branch`, constraints numéricas, índices de listagem e índices parciais de unicidade para placa e chassi ativos por empresa.
+- API REST disponível em `GET/POST /api/vehicles` e `GET/PATCH/DELETE /api/vehicles/:id`, com paginação máxima de 100, ordenação, filtros e busca por placa, identificação do veículo, chassi, RENAVAM e cliente.
+- Todas as queries usam `companyId` derivado da sessão; cliente deve estar ativo e pertencer à empresa, filial deve estar ativa e pertencer ao mesmo tenant, e IDs cruzados retornam 404.
+- Soft delete define `deletedAt` e status `INACTIVE`; placa e chassi podem ser reutilizados após exclusão lógica.
+- Permissões `vehicles.view`, `vehicles.create`, `vehicles.update` e `vehicles.delete` aplicadas às rotas e adicionadas ao seed.
+- Auditoria transacional implementada com `VEHICLE_CREATE`, `VEHICLE_UPDATE` e `VEHICLE_DELETE`.
+- Página Veículos integrada após validação do backend, preservando layout/design system, com busca, filtros, tabela, paginação, seleção de cliente, cadastro e exclusão. `VITE_USE_MOCKS=true` permanece funcional.
+- Testes adicionados para validação, normalização, unicidade, soft delete, busca, paginação, permissões, queries tenant-safe e isolamento Empresa A x Empresa B.
+- Validação final: backend com 66 testes e frontend com 11 testes; Prisma generate, lint e builds aprovados. Nenhum módulo de histórico, atendimento, OS ou revisão foi iniciado.
+
+Arquivos centrais: `backend/src/modules/vehicles/*`, `backend/prisma/migrations/20260807170000_add_vehicles`, `backend/tests/vehicles*`, `src/services/vehicles.ts` e `src/pages/VehiclesPage.tsx`.
+
+Próxima ação: abrir Pull Request de `feature/vehicles` para `develop`. A próxima etapa funcional permanece pendente e não faz parte desta branch.
+
 ## Módulo Clientes concluído
 
 ### Auditoria de segurança do Pull Request #2

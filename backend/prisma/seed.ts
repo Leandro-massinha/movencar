@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
-const permissions = ['dashboard.view','agenda.view','vehicles.view','orders.view','finance.view','crm.view','yard.view','tools.view','settings.manage','tenant.read','tenant.write','customers.view','customers.create','customers.update','customers.delete']
+const permissions = ['dashboard.view','agenda.view','vehicles.view','vehicles.create','vehicles.update','vehicles.delete','orders.view','finance.view','crm.view','yard.view','tools.view','settings.manage','tenant.read','tenant.write','customers.view','customers.create','customers.update','customers.delete']
 const companies = [
   { code: 'oficina-avenida', legalName: 'Oficina Avenida Ltda', tradeName: 'Oficina Avenida', document: '11111111000191', users: [{ name: 'Marina Costa', email: 'marina@movencar.demo', role: 'ADMIN' }, { name: 'Carlos Gestor', email: 'carlos@movencar.demo', role: 'MANAGER' }] },
   { code: 'auto-center-norte', legalName: 'Auto Center Norte Ltda', tradeName: 'Auto Center Norte', document: '22222222000191', users: [{ name: 'Ana Souza', email: 'ana@autonorte.demo', role: 'ADMIN' }, { name: 'Paulo Tecnico', email: 'paulo@autonorte.demo', role: 'TECHNICIAN' }] }

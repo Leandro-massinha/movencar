@@ -36,6 +36,7 @@ model Company {
   resources         TenantTestResource[]
   customers         Customer[]
   customerAddresses CustomerAddress[]
+  vehicles          Vehicle[]
 }
 
 model Branch {
@@ -52,6 +53,7 @@ model Branch {
   auditLogs       AuditLog[]
   resources       TenantTestResource[]
   customersOrigin Customer[]           @relation("CustomerOriginBranch")
+  vehiclesOrigin  Vehicle[]            @relation("VehicleOriginBranch")
 
   @@unique([companyId, code])
   @@unique([id, companyId])
@@ -211,12 +213,84 @@ model Customer {
   originBranch Branch? @relation("CustomerOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
 
   addresses CustomerAddress[]
+  vehicles  Vehicle[]
 
   @@unique([id, companyId])
   @@index([companyId, name])
   @@index([companyId, status])
   @@index([companyId, phone])
   @@index([companyId, whatsapp])
+  @@index([companyId, deletedAt])
+}
+
+enum VehicleStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+enum FuelType {
+  GASOLINE
+  ETHANOL
+  FLEX
+  DIESEL
+  ELECTRIC
+  HYBRID
+  GNV
+  OTHER
+}
+
+enum TransmissionType {
+  MANUAL
+  AUTOMATIC
+  CVT
+  AUTOMATED
+  OTHER
+}
+
+model Vehicle {
+  id             String  @id @default(uuid()) @db.Uuid
+  companyId      String  @db.Uuid
+  customerId     String  @db.Uuid
+  originBranchId String? @db.Uuid
+
+  status VehicleStatus @default(ACTIVE)
+
+  plate   String? @db.VarChar(7)
+  renavam String? @db.VarChar(11)
+  chassis String? @db.VarChar(17)
+
+  brand   String  @db.VarChar(80)
+  model   String  @db.VarChar(120)
+  version String? @db.VarChar(120)
+
+  yearManufacture Int?
+  yearModel       Int?
+  color           String? @db.VarChar(60)
+
+  fuelType     FuelType?
+  transmission TransmissionType?
+  engine       String?           @db.VarChar(80)
+  enginePower  Int?
+  bodyType     String?           @db.VarChar(80)
+  doors        Int?
+
+  currentMileage Int?
+  notes          String? @db.Text
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer     Customer @relation(fields: [customerId, companyId], references: [id, companyId], onDelete: Restrict)
+  originBranch Branch?  @relation("VehicleOriginBranch", fields: [originBranchId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@index([companyId, customerId])
+  @@index([companyId, status])
+  @@index([companyId, brand, model])
+  @@index([companyId, originBranchId])
   @@index([companyId, deletedAt])
 }
 

@@ -11,6 +11,7 @@ import { AppError, asyncHandler, errorHandler } from './lib/errors.js'
 import { authRouter } from './modules/auth/auth.routes.js'
 import { tenantRouter } from './modules/tenancy/tenant.routes.js'
 import { customersRouter } from './modules/customers/customers.routes.js'
+import { vehiclesRouter } from './modules/vehicles/vehicles.routes.js'
 
 export function createApp() {
   const app = express()
@@ -25,6 +26,7 @@ export function createApp() {
   app.get('/api/health', asyncHandler(async (_req, res) => { await prisma.$queryRaw`SELECT 1`; res.json({ status: 'ok', service: 'movencar-api', timestamp: new Date().toISOString() }) }))
   app.use('/api/auth', authRouter)
   app.use('/api/customers', customersRouter)
+  app.use('/api/vehicles', vehiclesRouter)
   app.use('/api', tenantRouter)
   app.use((_req, _res, next) => next(new AppError(404, 'NOT_FOUND', 'Rota nao encontrada.')))
   app.use(errorHandler)
