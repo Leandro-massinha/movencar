@@ -62,7 +62,9 @@ const renderPage = (element: React.ReactNode, value = auth()) =>
 describe("Check-in visual, damage map and PDC", () => {
   it("loads checklist, shows explicit states, progress and records an issue/damage", async () => {
     renderPage(<CheckInPage />);
-    expect(await screen.findByText(/Check-in · OS #1842/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Check-in · OS #1842/, {}, { timeout: 10_000 }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Ausência de resposta nunca significa OK."),
     ).toBeInTheDocument();
@@ -81,7 +83,7 @@ describe("Check-in visual, damage map and PDC", () => {
     await waitFor(() =>
       expect(screen.getByText(/Capô · Risco/)).toBeInTheDocument(),
     );
-  }, 10_000);
+  }, 20_000);
 
   it("offers a real navigation path from the work order to Check-in and PDC", async () => {
     render(

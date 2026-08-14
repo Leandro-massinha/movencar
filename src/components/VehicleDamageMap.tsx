@@ -1,5 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { DamageLocation } from "../services/workshop";
 
 type DamageLike = {
@@ -60,7 +60,7 @@ const viewConfigs: ViewConfig[] = [
       { location: "FRONT_LEFT_WHEEL", points: "475,250 525,250 535,365 485,365", marker: [505, 308] },
       { location: "FRONT_RIGHT_WHEEL", points: "1010,250 1060,250 1050,365 1000,365", marker: [1035, 308] },
       { location: "REAR_LEFT_WHEEL", points: "490,695 540,695 545,805 495,805", marker: [518, 750] },
-      { location: "REAR_RIGHT_WHEEL", points: "995,695 1045,695 1040,805 990,805", marker: [1018, 750] },
+      { location: "REAR_RIGHT_WHEEL", points: "290,545 485,545 485,790 290,790", marker: [388, 668] },
     ],
   },
   {
@@ -68,6 +68,16 @@ const viewConfigs: ViewConfig[] = [
     label: "Dianteira",
     imagePath: "/assets/damage-views/front.webp",
     hotspots: [
+      {
+        location: "FRONT_LEFT_HEADLIGHT",
+        points: "365,430 570,390 620,475 390,520",
+        marker: [490, 455],
+      },
+      {
+        location: "FRONT_RIGHT_HEADLIGHT",
+        points: "965,390 1170,430 1145,520 915,475",
+        marker: [1045, 455],
+      },
       { location: "HOOD", points: "440,365 1095,365 1015,555 520,555", marker: [768, 455] },
       { location: "FRONT_BUMPER", points: "350,610 1185,610 1150,820 385,820", marker: [768, 720] },
       { location: "FRONT_LEFT_FENDER", points: "300,410 520,365 520,640 330,675", marker: [420, 520] },
@@ -82,6 +92,16 @@ const viewConfigs: ViewConfig[] = [
     label: "Traseira",
     imagePath: "/assets/damage-views/rear.webp",
     hotspots: [
+      {
+        location: "REAR_LEFT_TAILLIGHT",
+        points: "340,435 520,410 540,530 350,550",
+        marker: [435, 480],
+      },
+      {
+        location: "REAR_RIGHT_TAILLIGHT",
+        points: "1015,410 1195,435 1185,550 995,530",
+        marker: [1100, 480],
+      },
       { location: "REAR_GLASS", points: "490,230 1045,230 1090,400 445,400", marker: [768, 310] },
       { location: "TRUNK_LID", points: "430,400 1105,400 1080,600 455,600", marker: [768, 500] },
       { location: "REAR_BUMPER", points: "350,615 1185,615 1160,815 375,815", marker: [768, 710] },
@@ -94,13 +114,51 @@ const viewConfigs: ViewConfig[] = [
     label: "Lateral esquerda",
     imagePath: "/assets/damage-views/left.webp",
     hotspots: [
-      { location: "REAR_LEFT_QUARTER", points: "240,410 470,350 540,405 520,700 260,690", marker: [385, 535] },
-      { location: "REAR_LEFT_DOOR", points: "500,340 735,330 750,685 520,700", marker: [625, 525] },
-      { location: "FRONT_LEFT_DOOR", points: "735,330 970,345 1000,675 750,685", marker: [865, 520] },
-      { location: "FRONT_LEFT_FENDER", points: "970,345 1240,405 1300,640 1000,675", marker: [1130, 525] },
-      { location: "LEFT_MIRROR", points: "920,290 1000,290 1020,350 955,360", marker: [970, 320] },
-      { location: "REAR_LEFT_WHEEL", points: "280,590 500,590 520,810 265,810", marker: [390, 700] },
-      { location: "FRONT_LEFT_WHEEL", points: "1030,585 1270,585 1290,810 1020,810", marker: [1155, 700] },
+      {
+        location: "FRONT_LEFT_FENDER",
+        points: "145,470 445,445 500,690 455,700 439,529 235,530 243,690 45,680",
+        marker: [340, 540],
+      },
+      {
+        location: "FRONT_LEFT_DOOR",
+        points: "485,485 815,330 815,680 490,690",
+        marker: [650, 520],
+      },
+      {
+        location: "REAR_LEFT_DOOR",
+        points: "820,340 1090,340 1015,680 820,680",
+        marker: [940, 520],
+      },
+      {
+        location: "REAR_LEFT_QUARTER",
+        points: "1112,379 1410,435 1385,600 1255,685 1255,520 1090,530 1050,600",
+        marker: [1210, 510],
+      },
+      {
+        location: "LEFT_FRONT_GLASS",
+        points: "500,350 805,330 805,470 500,475",
+        marker: [655, 405],
+      },
+      {
+        location: "LEFT_REAR_GLASS",
+        points: "820,340 1080,345 1025,470 820,470",
+        marker: [930, 405],
+      },
+      {
+        location: "LEFT_MIRROR",
+        points: "510,405 615,405 610,465 445,475",
+        marker: [535, 440],
+      },
+      {
+        location: "FRONT_LEFT_WHEEL",
+        points: "255,545 435,545 440,790 240,790",
+        marker: [340, 668],
+      },
+      {
+        location: "REAR_LEFT_WHEEL",
+        points: "1080,545 1235,545 1252,749 1000,759",
+        marker: [1120, 650],
+      },
     ],
   },
   {
@@ -108,13 +166,51 @@ const viewConfigs: ViewConfig[] = [
     label: "Lateral direita",
     imagePath: "/assets/damage-views/right.webp",
     hotspots: [
-      { location: "REAR_RIGHT_QUARTER", points: "1015,405 1290,405 1270,690 995,700", marker: [1135, 535] },
-      { location: "REAR_RIGHT_DOOR", points: "790,345 1015,350 995,700 770,685", marker: [895, 525] },
-      { location: "FRONT_RIGHT_DOOR", points: "555,330 790,345 770,685 530,675", marker: [660, 520] },
-      { location: "FRONT_RIGHT_FENDER", points: "290,405 555,330 530,675 240,640", marker: [410, 525] },
-      { location: "RIGHT_MIRROR", points: "515,290 600,290 580,360 515,350", marker: [555, 320] },
-      { location: "REAR_RIGHT_WHEEL", points: "1035,590 1260,590 1275,810 1015,810", marker: [1145, 700] },
-      { location: "FRONT_RIGHT_WHEEL", points: "265,585 505,585 520,810 245,810", marker: [385, 700] },
+      {
+        location: "REAR_RIGHT_QUARTER",
+        points: "125,455 399,375 450,525 295,600 285,690 230,620 105,680",
+        marker: [290, 540],
+      },
+      {
+        location: "REAR_RIGHT_DOOR",
+        points: "450,370 720,350 720,685 450,690",
+        marker: [585, 520],
+      },
+      {
+        location: "FRONT_RIGHT_DOOR",
+        points: "720,350 1000,390 1050,685 720,685",
+        marker: [885, 525],
+      },
+      {
+        location: "FRONT_RIGHT_FENDER",
+        points: "1000,435 1340,465 1300,650 1240,550 1225,535 1060,565 1050,585",
+        marker: [1185, 530],
+      },
+      {
+        location: "RIGHT_REAR_GLASS",
+        points: "455,370 710,355 710,475 465,475",
+        marker: [585, 415],
+      },
+      {
+        location: "RIGHT_FRONT_GLASS",
+        points: "720,355 990,395 1010,480 720,475",
+        marker: [865, 420],
+      },
+      {
+        location: "RIGHT_MIRROR",
+        points: "905,405 1050,405 1050,465 900,475",
+        marker: [975, 435],
+      },
+      {
+        location: "REAR_RIGHT_WHEEL",
+        points: "290,545 485,545 485,790 290,790",
+        marker: [388, 668],
+      },
+      {
+        location: "FRONT_RIGHT_WHEEL",
+        points: "1070,549 1280,549 1280,790 1070,790",
+        marker: [1175, 670],
+      },
     ],
   },
 ];
@@ -131,8 +227,11 @@ export function VehicleDamageMap({
 }: VehicleDamageMapProps) {
   const [activeView, setActiveView] = useState<VehicleView>("TOP");
 
-  const countFor = (location: DamageLocation) =>
-    damages.filter((damage) => damage.location === location).length;
+  const countFor = useCallback(
+    (location: DamageLocation) =>
+      damages.filter((damage) => damage.location === location).length,
+    [damages],
+  );
 
   const activeConfig = viewConfigs.find((view) => view.id === activeView) ?? viewConfigs[0];
 
@@ -148,7 +247,7 @@ export function VehicleDamageMap({
         return [view.id, total];
       }),
     ) as Record<VehicleView, number>;
-  }, [damages]);
+  }, [countFor]);
 
   const activate = (location: DamageLocation) => {
     if (!disabled) onSelect(location);
