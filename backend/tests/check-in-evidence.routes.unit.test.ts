@@ -45,6 +45,19 @@ describe("autorização e headers de evidências do Check-in", () => {
     }
   });
 
+  it("protege todas as rotas de evidência de item antes do banco", async () => {
+    const app = createApp();
+    const order = "00000000-0000-4000-8000-000000000001";
+    const result = "00000000-0000-4000-8000-000000000002";
+    const evidence = "00000000-0000-4000-8000-000000000003";
+    for (const call of [
+      request(app).get(`/api/work-orders/${order}/check-in/checklist/items/${result}/evidence`),
+      request(app).post(`/api/work-orders/${order}/check-in/checklist/items/${result}/evidence`),
+      request(app).get(`/api/work-orders/${order}/check-in/checklist/items/${result}/evidence/${evidence}/content`),
+      request(app).delete(`/api/work-orders/${order}/check-in/checklist/items/${result}/evidence/${evidence}`),
+    ]) await call.expect(401);
+  });
+
   it.each(["checkins.view", "checkins.update"])(
     "rejeita ausência da permissão %s",
     (permission) => {

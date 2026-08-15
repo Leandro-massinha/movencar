@@ -27,7 +27,7 @@ const db = vi.hoisted(() => ({
     create: vi.fn(),
     updateMany: vi.fn(),
   },
-  checklistTemplateItem: { count: vi.fn(), findFirst: vi.fn() },
+  checklistTemplateItem: { count: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
   checklistItemResult: { upsert: vi.fn() },
   checkInDamage: { findFirst: vi.fn(), create: vi.fn() },
   preliminaryVehicleDiagnostic: {
@@ -101,6 +101,7 @@ describe("work order intake security and consistency", () => {
     db.workOrder.create.mockResolvedValue(order);
     db.workOrder.findFirst.mockResolvedValue(order);
     db.vehicleHistoryEvent.create.mockResolvedValue({ id: "history-a" });
+    db.checklistTemplateItem.findMany.mockResolvedValue([]);
   });
 
   it("derives company, attendant and friendly number when creating", async () => {

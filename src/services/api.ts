@@ -1,7 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 interface PublicApiError {
-  error?: { message?: unknown };
+  error?: { code?: unknown; message?: unknown; details?: unknown };
 }
 
 export function getPublicErrorMessage(
@@ -14,6 +14,15 @@ export function getPublicErrorMessage(
 }
 export const getApiStatus = (error: unknown) =>
   axios.isAxiosError(error) ? error.response?.status : undefined;
+export const getApiErrorCode = (error: unknown) => {
+  if (!axios.isAxiosError<PublicApiError>(error)) return undefined;
+  const code = error.response?.data?.error?.code;
+  return typeof code === "string" ? code : undefined;
+};
+export const getApiErrorDetails = (error: unknown) =>
+  axios.isAxiosError<PublicApiError>(error)
+    ? error.response?.data?.error?.details
+    : undefined;
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",

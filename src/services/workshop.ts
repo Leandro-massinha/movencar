@@ -37,6 +37,8 @@ export interface ChecklistItem {
   title: string;
   responseType: "STATUS" | "TEXT" | "NUMBER" | "SELECT";
   isRequired: boolean;
+  requiresPhoto: boolean;
+  photoRequiredOnIssue: boolean;
   options?: string[] | null;
 }
 export interface ChecklistResult {
@@ -122,6 +124,8 @@ const statusItems = (prefix: string, titles: string[]): ChecklistItem[] =>
     title,
     responseType: "STATUS",
     isRequired: true,
+    requiresPhoto: prefix === "ext" && index === 0,
+    photoRequiredOnIssue: prefix === "ext" && index === 1,
   }));
 const mockCheckIn: CheckInWorkspace = {
   workOrder: {

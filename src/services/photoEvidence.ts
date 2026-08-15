@@ -35,6 +35,7 @@ type UploadInput = {
 const useMocks = import.meta.env.VITE_USE_MOCKS !== "false";
 const generalMock = new Map<string, PhotoEvidence[]>();
 const damageMock = new Map<string, PhotoEvidence[]>();
+const checklistItemMock = new Map<string, PhotoEvidence[]>();
 const mockBlobs = new Map<string, Blob>();
 
 const damageKey = (workOrderId: string, damageId: string) =>
@@ -171,6 +172,34 @@ export const photoEvidenceApi = {
     await api.delete(
       `/work-orders/${workOrderId}/check-in/damages/${damageId}/evidence/${evidenceId}`,
     );
+  },
+
+  listChecklistItem: async (workOrderId: string, itemResultId: string) => {
+    const key = `${workOrderId}:${itemResultId}`;
+    return useMocks
+      ? structuredClone(checklistItemMock.get(key) ?? [])
+      : api.get<{ data: PhotoEvidence[] }>(`/work-orders/${workOrderId}/check-in/checklist/items/${itemResultId}/evidence`).then(({ data }) => data.data);
+  },
+
+  uploadChecklistItem: async (workOrderId: string, itemResultId: string, input: Omit<UploadInput, "category">) => {
+    const key = `${workOrderId}:${itemResultId}`;
+    if (useMocks) {
+      const target = checklistItemMock.get(key) ?? [];
+      checklistItemMock.set(key, target);
+      return mockUpload(target, input);
+    }
+    return api.post<{ evidence: PhotoEvidence }>(`/work-orders/${workOrderId}/check-in/checklist/items/${itemResultId}/evidence`, formData(input)).then(({ data }) => data.evidence);
+  },
+
+  getChecklistItemContent: async (workOrderId: string, itemResultId: string, evidenceId: string) =>
+    useMocks ? mockContent(evidenceId) : api.get<Blob>(`/work-orders/${workOrderId}/check-in/checklist/items/${itemResultId}/evidence/${evidenceId}/content`, { responseType: "blob" }).then(({ data }) => data),
+
+  deleteChecklistItem: async (workOrderId: string, itemResultId: string, evidenceId: string) => {
+    if (useMocks) {
+      mockDelete(checklistItemMock.get(`${workOrderId}:${itemResultId}`) ?? [], evidenceId);
+      return;
+    }
+    await api.delete(`/work-orders/${workOrderId}/check-in/checklist/items/${itemResultId}/evidence/${evidenceId}`);
   },
 };
 

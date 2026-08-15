@@ -84,4 +84,21 @@ describe("API real de evidências fotográficas", () => {
       "/work-orders/os-1/check-in/damages/avaria-1/evidence/foto-2",
     );
   });
+
+  it("usa endpoints contextuais da resposta real do checklist", async () => {
+    const evidence = { id: "foto-item" };
+    const blob = new Blob(["foto"], { type: "image/webp" });
+    http.get.mockResolvedValueOnce({ data: { data: [evidence] } }).mockResolvedValueOnce({ data: blob });
+    http.post.mockResolvedValue({ data: { evidence } });
+    http.delete.mockResolvedValue({});
+    const { photoEvidenceApi } = await import("../services/photoEvidence");
+    const file = new File(["foto"], "item.webp", { type: "image/webp" });
+    await photoEvidenceApi.listChecklistItem("os-1", "resultado-1");
+    await photoEvidenceApi.uploadChecklistItem("os-1", "resultado-1", { file, caption: "Freio" });
+    await photoEvidenceApi.getChecklistItemContent("os-1", "resultado-1", "foto-item");
+    await photoEvidenceApi.deleteChecklistItem("os-1", "resultado-1", "foto-item");
+    expect(http.get).toHaveBeenNthCalledWith(1, "/work-orders/os-1/check-in/checklist/items/resultado-1/evidence");
+    expect(http.get).toHaveBeenNthCalledWith(2, "/work-orders/os-1/check-in/checklist/items/resultado-1/evidence/foto-item/content", { responseType: "blob" });
+    expect(http.delete).toHaveBeenCalledWith("/work-orders/os-1/check-in/checklist/items/resultado-1/evidence/foto-item");
+  });
 });

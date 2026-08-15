@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { Prisma as PrismaRuntime } from "@prisma/client";
 import { AppError } from "../../lib/errors.js";
 import { prisma } from "../../lib/prisma.js";
+import { checklistPhotoRequirement } from "./checklist-photo-requirements.js";
 import type {
   CloseWorkOrderInput,
   ChecklistResultInput,
@@ -689,6 +690,51 @@ export async function completeCheckIn(
         409,
         "CHECKLIST_REQUIRED_ITEMS_MISSING",
         `Existem ${missingRequired} itens obrigatórios sem resposta.`,
+      );
+    const photoRuleItems = await tx.checklistTemplateItem.findMany({
+      where: {
+        section: { templateId: instance.templateId },
+        active: true,
+        OR: [{ requiresPhoto: true }, { photoRequiredOnIssue: true }],
+      },
+      select: {
+        id: true,
+        title: true,
+        requiresPhoto: true,
+        photoRequiredOnIssue: true,
+        results: {
+          where: { companyId: actor.companyId, instanceId: instance.id },
+          select: {
+            id: true,
+            status: true,
+            evidenceAttachments: {
+              where: {
+                companyId: actor.companyId,
+                deletedAt: null,
+                fileAsset: { status: "AVAILABLE", deletedAt: null },
+              },
+              select: { id: true },
+              take: 1,
+            },
+          },
+          take: 1,
+        },
+      },
+      orderBy: [{ section: { order: "asc" } }, { order: "asc" }],
+    });
+    const photoPendingItems = photoRuleItems.flatMap((item) => {
+      const result = item.results[0];
+      const reason = checklistPhotoRequirement(item, result?.status);
+      return reason && !result?.evidenceAttachments.length
+        ? [{ itemId: item.id, itemResultId: result?.id ?? null, label: item.title, reason }]
+        : [];
+    });
+    if (photoPendingItems.length)
+      throw new AppError(
+        409,
+        "CHECKLIST_PHOTO_REQUIRED",
+        `Existem ${photoPendingItems.length} itens da Lista de Verificação que exigem foto.`,
+        { items: photoPendingItems },
       );
     const changed = await tx.vehicleCheckIn.updateMany({
       where: { id: checkIn.id, companyId: actor.companyId, status: "DRAFT" },

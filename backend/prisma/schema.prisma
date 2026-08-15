@@ -70,6 +70,7 @@ model Company {
   fileAssets                       FileAsset[]
   checkInEvidenceAttachments       CheckInEvidenceAttachment[]
   checkInDamageEvidenceAttachments CheckInDamageEvidenceAttachment[]
+  checklistItemEvidenceAttachments ChecklistItemEvidenceAttachment[]
   preliminaryDiagnostics           PreliminaryVehicleDiagnostic[]
   pdcFindings                      PdcFinding[]
 }
@@ -165,6 +166,7 @@ model User {
   uploadedFileAssets                FileAsset[]                       @relation("FileAssetUploader")
   createdCheckInEvidenceAttachments CheckInEvidenceAttachment[]       @relation("CheckInEvidenceAttachmentCreator")
   createdDamageEvidenceAttachments  CheckInDamageEvidenceAttachment[] @relation("CheckInDamageEvidenceAttachmentCreator")
+  createdChecklistItemEvidenceAttachments ChecklistItemEvidenceAttachment[] @relation("ChecklistItemEvidenceAttachmentCreator")
 
   @@unique([id, companyId])
   @@index([companyId, email])
@@ -921,6 +923,7 @@ model VehicleCheckIn {
   damages           CheckInDamage[]
   evidenceAttachments       CheckInEvidenceAttachment[]
   damageEvidenceAttachments CheckInDamageEvidenceAttachment[]
+  checklistItemEvidenceAttachments ChecklistItemEvidenceAttachment[]
 
   @@unique([id, companyId])
   @@unique([workOrderId, companyId, branchId, customerId, vehicleId], map: "VehicleCheckIn_work_order_key")
@@ -1044,6 +1047,7 @@ model ChecklistInstance {
   template  ChecklistTemplate     @relation(fields: [templateId, templateVersion], references: [id, version], onDelete: Restrict)
   createdBy User                  @relation("ChecklistInstanceCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
   results   ChecklistItemResult[]
+  evidenceAttachments ChecklistItemEvidenceAttachment[]
 
   @@unique([id, companyId])
   @@unique([checkInId, companyId])
@@ -1069,8 +1073,10 @@ model ChecklistItemResult {
   instance    ChecklistInstance     @relation(fields: [instanceId, companyId], references: [id, companyId], onDelete: Restrict)
   item        ChecklistTemplateItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
   completedBy User                  @relation("ChecklistResultCompleter", fields: [completedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+  evidenceAttachments ChecklistItemEvidenceAttachment[]
 
   @@unique([companyId, instanceId, itemId])
+  @@unique([id, instanceId, itemId, companyId])
 }
 
 enum CheckInDamageLocation {
@@ -1167,6 +1173,7 @@ enum FileAssetStatus {
 enum FileAssetOwnershipType {
   CHECK_IN
   CHECK_IN_DAMAGE
+  CHECKLIST_ITEM
 }
 
 enum CheckInEvidenceCategory {
@@ -1207,6 +1214,7 @@ model FileAsset {
   uploadedBy         User                              @relation("FileAssetUploader", fields: [uploadedByUserId, companyId], references: [id, companyId], onDelete: Restrict)
   checkInAttachments CheckInEvidenceAttachment[]
   damageAttachments  CheckInDamageEvidenceAttachment[]
+  checklistItemAttachments ChecklistItemEvidenceAttachment[]
 
   @@unique([id, companyId])
   @@unique([id, companyId, ownershipType])
@@ -1260,6 +1268,33 @@ model CheckInDamageEvidenceAttachment {
 
   @@unique([id, companyId])
   @@index([companyId, checkInId, damageId, sequence], map: "CIDEA_company_checkin_damage_sequence_idx")
+  @@index([companyId, deletedAt])
+}
+
+model ChecklistItemEvidenceAttachment {
+  id                String                 @id @default(uuid()) @db.Uuid
+  companyId         String                 @db.Uuid
+  checkInId         String                 @db.Uuid
+  checklistInstanceId String               @db.Uuid
+  checklistItemId   String                 @db.Uuid
+  itemResultId      String                 @db.Uuid
+  fileAssetId       String                 @unique @db.Uuid
+  fileOwnershipType FileAssetOwnershipType @default(CHECKLIST_ITEM)
+  caption           String?                @db.VarChar(500)
+  sequence          Int
+  createdByUserId   String                 @db.Uuid
+  deletedAt         DateTime?
+  createdAt         DateTime               @default(now())
+
+  company   Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  checkIn   VehicleCheckIn      @relation(fields: [checkInId, companyId], references: [id, companyId], onDelete: Restrict)
+  checklistInstance ChecklistInstance @relation(fields: [checklistInstanceId, companyId], references: [id, companyId], onDelete: Restrict)
+  itemResult ChecklistItemResult @relation(fields: [itemResultId, checklistInstanceId, checklistItemId, companyId], references: [id, instanceId, itemId, companyId], onDelete: Restrict, map: "CIIEA_result_instance_item_company_fkey")
+  fileAsset FileAsset           @relation(fields: [fileAssetId, companyId, fileOwnershipType], references: [id, companyId, ownershipType], onDelete: Restrict, map: "CIIEA_file_company_owner_fkey")
+  createdBy User                @relation("ChecklistItemEvidenceAttachmentCreator", fields: [createdByUserId, companyId], references: [id, companyId], onDelete: Restrict)
+
+  @@unique([id, companyId])
+  @@index([companyId, checkInId, checklistInstanceId, itemResultId, sequence], map: "CIIEA_company_checkin_instance_result_sequence_idx")
   @@index([companyId, deletedAt])
 }
 

@@ -15,6 +15,10 @@ import {
   damageEvidenceFieldsSchema,
   type DamageEvidenceFields,
 } from "./check-in-damage-evidence.schemas.js";
+import {
+  checklistItemEvidenceFieldsSchema,
+  type ChecklistItemEvidenceFields,
+} from "./checklist-item-evidence.schemas.js";
 
 export type ParsedCheckInEvidenceUpload = {
   fields: CheckInEvidenceFields;
@@ -46,6 +50,20 @@ export async function parseAndStageDamageEvidence(
     maxBytes,
     new Set(["caption"]),
     damageEvidenceFieldsSchema,
+  );
+}
+
+export async function parseAndStageChecklistItemEvidence(
+  req: Request,
+  storage: PrivateStorageProvider,
+  maxBytes: number,
+): Promise<{ fields: ChecklistItemEvidenceFields; staged: StagedPrivateImage }> {
+  return parseAndStagePrivateEvidence(
+    req,
+    storage,
+    maxBytes,
+    new Set(["caption"]),
+    checklistItemEvidenceFieldsSchema,
   );
 }
 

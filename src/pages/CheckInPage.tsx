@@ -19,9 +19,11 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { checkInEvidenceCategoryLabels } from "../i18n/pt-BR";
 import { hasPermission } from "../lib/permissions";
-import { getApiStatus, getPublicErrorMessage } from "../services/api";
+import { getApiErrorCode, getApiErrorDetails, getApiStatus, getPublicErrorMessage } from "../services/api";
 import {
   workshopApi,
+  type ChecklistItem,
+  type ChecklistResult,
   type CheckInWorkspace,
   type DamageLocation,
   type ObservationStatus,
@@ -105,6 +107,14 @@ export function CheckInPage() {
   const [damageEvidenceCounts, setDamageEvidenceCounts] = useState<
     Record<string, number>
   >({});
+  const [selectedChecklistItem, setSelectedChecklistItem] = useState<{
+    item: ChecklistItem;
+    result: ChecklistResult;
+  } | null>(null);
+  const [checklistItemEvidence, setChecklistItemEvidence] = useState<PhotoEvidence[]>([]);
+  const [checklistEvidenceCounts, setChecklistEvidenceCounts] = useState<Record<string, number>>({});
+  const [checklistEvidenceError, setChecklistEvidenceError] = useState("");
+  const [photoPendingItemIds, setPhotoPendingItemIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -165,6 +175,33 @@ export function CheckInPage() {
       active = false;
     };
   }, [data?.checkIn.damages, id]);
+
+  useEffect(() => {
+    const results = data?.checkIn.checklistInstance.results ?? [];
+    if (!results.length) {
+      setChecklistEvidenceCounts({});
+      return;
+    }
+    let active = true;
+    void Promise.all(results.map(async (result) => [
+      result.id,
+      (await photoEvidenceApi.listChecklistItem(id, result.id)).length,
+    ] as const)).then((entries) => {
+      if (active) setChecklistEvidenceCounts(Object.fromEntries(entries));
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [data?.checkIn.checklistInstance.results, id]);
+
+  const openChecklistItemEvidence = async (item: ChecklistItem, result: ChecklistResult) => {
+    setSelectedChecklistItem({ item, result });
+    setChecklistItemEvidence([]);
+    setChecklistEvidenceError("");
+    try {
+      setChecklistItemEvidence(await photoEvidenceApi.listChecklistItem(id, result.id));
+    } catch (cause) {
+      setChecklistEvidenceError(getPublicErrorMessage(cause, "Não foi possível carregar as fotos do item."));
+    }
+  };
 
   const openDamageEvidence = async (
     damage: CheckInWorkspace["checkIn"]["damages"][number],
@@ -265,7 +302,17 @@ export function CheckInPage() {
       await workshopApi.completeCheckIn(id);
       await load();
     } catch (cause) {
-      setError(getPublicErrorMessage(cause));
+      if (getApiErrorCode(cause) === "CHECKLIST_PHOTO_REQUIRED") {
+        const details = getApiErrorDetails(cause) as { items?: Array<{ itemId?: string }> } | undefined;
+        const pending = details?.items?.flatMap(({ itemId }) => itemId ? [itemId] : []) ?? [];
+        setPhotoPendingItemIds(pending);
+        setError(
+          pending.length === 1
+            ? "Não é possível concluir o Check-in. Existe 1 item que exige foto."
+            : `Não é possível concluir o Check-in. Existem ${pending.length} itens que exigem foto.`,
+        );
+        requestAnimationFrame(() => document.getElementById(`checklist-item-${pending[0]}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      } else setError(getPublicErrorMessage(cause));
     } finally {
       setSaving(false);
     }
@@ -486,7 +533,7 @@ export function CheckInPage() {
               {section.items.map((item) => {
                 const result = resultFor(item.id);
                 return (
-                  <div key={item.id} className="p-4">
+                  <div id={`checklist-item-${item.id}`} key={item.id} className={`p-4 ${photoPendingItemIds.includes(item.id) ? "border-l-4 border-amber-500 bg-amber-50" : ""}`}>
                     <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
                       <div>
                         <p className="font-medium text-slate-800">
@@ -582,8 +629,30 @@ export function CheckInPage() {
                           ))}
                         </Select>
                       )}
+                      </div>
+
+                      {(item.requiresPhoto || item.photoRequiredOnIssue) && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs sm:mt-0">
+                          <Badge tone={item.requiresPhoto ? "warning" : "info"}>
+                            {item.requiresPhoto ? "Foto obrigatória" : "Foto obrigatória se houver problema"}
+                          </Badge>
+                          {(() => {
+                            const requiredNow = item.requiresPhoto || (item.photoRequiredOnIssue && result?.status === "ISSUE");
+                            const count = result ? (checklistEvidenceCounts[result.id] ?? 0) : 0;
+                            return requiredNow && count === 0 ? <Badge tone="danger">Foto pendente</Badge> : count > 0 ? <Badge tone="success">Evidência registrada</Badge> : null;
+                          })()}
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={!result}
+                            title={!result ? "Responda ao item antes de adicionar fotos" : undefined}
+                            onClick={() => result && void openChecklistItemEvidence(item, result)}
+                          >
+                            <Camera className="size-4" /> {result ? (checklistEvidenceCounts[result.id] ?? 0) : 0} fotos
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  </div>
                 );
               })}
             </div>
@@ -699,6 +768,39 @@ export function CheckInPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={selectedChecklistItem !== null}
+        title={selectedChecklistItem ? `Fotos do item · ${selectedChecklistItem.item.title}` : "Fotos do item"}
+        onClose={() => setSelectedChecklistItem(null)}
+      >
+        {selectedChecklistItem && (
+          <div className="max-h-[80vh] space-y-4 overflow-y-auto pr-1">
+            {canUpdate && (
+              <PhotoEvidenceUploader
+                onUpload={(file, caption) => photoEvidenceApi.uploadChecklistItem(id, selectedChecklistItem.result.id, { file, caption })}
+                onUploaded={(evidence) => {
+                  setChecklistItemEvidence((current) => [...current, evidence]);
+                  setChecklistEvidenceCounts((current) => ({ ...current, [selectedChecklistItem.result.id]: (current[selectedChecklistItem.result.id] ?? 0) + 1 }));
+                  setPhotoPendingItemIds((current) => current.filter((itemId) => itemId !== selectedChecklistItem.item.id));
+                }}
+              />
+            )}
+            {checklistEvidenceError && <p role="alert" className="text-sm text-red-700">{checklistEvidenceError}</p>}
+            <PhotoEvidenceGallery
+              evidence={checklistItemEvidence}
+              readonly={!canUpdate}
+              contextLabel={() => selectedChecklistItem.item.title}
+              loadContent={(evidenceId) => photoEvidenceApi.getChecklistItemContent(id, selectedChecklistItem.result.id, evidenceId)}
+              onDelete={async (evidenceId) => {
+                await photoEvidenceApi.deleteChecklistItem(id, selectedChecklistItem.result.id, evidenceId);
+                setChecklistItemEvidence((current) => current.filter(({ id: currentId }) => currentId !== evidenceId));
+                setChecklistEvidenceCounts((current) => ({ ...current, [selectedChecklistItem.result.id]: Math.max(0, (current[selectedChecklistItem.result.id] ?? 1) - 1) }));
+              }}
+            />
+          </div>
+        )}
       </Modal>
 
       <Modal

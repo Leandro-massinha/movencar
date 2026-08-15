@@ -11,6 +11,7 @@ import { LocalPrivateStorageProvider } from "../src/lib/private-storage/index.js
 import {
   parseAndStageCheckInEvidence,
   parseAndStageDamageEvidence,
+  parseAndStageChecklistItemEvidence,
 } from "../src/modules/work-orders/check-in-evidence.multipart.js";
 
 const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
@@ -275,6 +276,26 @@ describe("multipart de evidências de avaria", () => {
       .expect(({ body }) => expect(body.error.code).toBe("INVALID_MULTIPART_FIELD"));
     const files = await readdir(path.join(temporaryRoot, "staging")).catch(() => []);
     expect(files).toEqual([]);
+  });
+});
+
+describe("multipart de evidências de item da Lista de Verificação", () => {
+  it("reutiliza o pipeline e aceita somente legenda", async () => {
+    const temporaryRoot = await mkdtemp(path.join(tmpdir(), "movencar-item-upload-"));
+    const storage = new LocalPrivateStorageProvider({ root: temporaryRoot, maxBytes: 100 });
+    const app = express();
+    app.post("/upload", async (req, res, next) => {
+      try { res.status(201).json(await parseAndStageChecklistItemEvidence(req, storage, 100)); }
+      catch (error) { next(error); }
+    });
+    app.use(errorHandler);
+    const response = await request(app).post("/upload").field("caption", "Freio dianteiro")
+      .attach("file", jpeg, { filename: "freio.jpg", contentType: "image/jpeg" }).expect(201);
+    expect(response.body.fields).toEqual({ caption: "Freio dianteiro" });
+    await storage.remove(response.body.staged.stagingKey);
+    await request(app).post("/upload").field("companyId", "indevido")
+      .attach("file", jpeg, { filename: "freio.jpg", contentType: "image/jpeg" }).expect(400);
+    await rm(temporaryRoot, { recursive: true, force: true });
   });
 });
 

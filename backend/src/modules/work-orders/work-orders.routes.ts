@@ -25,12 +25,15 @@ import {
 import * as service from "./work-orders.service.js";
 import * as evidenceService from "./check-in-evidence.service.js";
 import * as damageEvidenceService from "./check-in-damage-evidence.service.js";
+import * as checklistItemEvidenceService from "./checklist-item-evidence.service.js";
 import {
   parseAndStageCheckInEvidence,
   parseAndStageDamageEvidence,
+  parseAndStageChecklistItemEvidence,
 } from "./check-in-evidence.multipart.js";
 import { checkInEvidenceParamsSchema } from "./check-in-evidence.schemas.js";
 import { damageEvidenceParamsSchema } from "./check-in-damage-evidence.schemas.js";
+import { checklistItemEvidenceParamsSchema } from "./checklist-item-evidence.schemas.js";
 
 export const workOrdersRouter = Router();
 workOrdersRouter.use(authenticate);
@@ -126,6 +129,45 @@ workOrdersRouter.delete(
   asyncHandler(async (req, res) => {
     const { id, evidenceId } = checkInEvidenceParamsSchema.parse(req.params);
     await evidenceService.deleteCheckInEvidence(actor(req), id, evidenceId);
+    res.status(204).end();
+  }),
+);
+workOrdersRouter.get(
+  "/:id/check-in/checklist/items/:itemResultId/evidence",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id, itemResultId } = checklistItemEvidenceParamsSchema.parse(req.params);
+    res.json({ data: await checklistItemEvidenceService.listChecklistItemEvidence(req.auth!.companyId, id, itemResultId) });
+  }),
+);
+workOrdersRouter.post(
+  "/:id/check-in/checklist/items/:itemResultId/evidence",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id, itemResultId } = checklistItemEvidenceParamsSchema.parse(req.params);
+    await checklistItemEvidenceService.assertChecklistItemEvidenceUploadAllowed(actor(req), id, itemResultId);
+    const upload = await parseAndStageChecklistItemEvidence(req, evidenceService.checkInEvidenceStorage, env.PHOTO_MAX_BYTES);
+    res.status(201).json({ evidence: await checklistItemEvidenceService.createChecklistItemEvidence(actor(req), id, itemResultId, upload.fields, upload.staged) });
+  }),
+);
+workOrdersRouter.get(
+  "/:id/check-in/checklist/items/:itemResultId/evidence/:evidenceId/content",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id, itemResultId, evidenceId } = checklistItemEvidenceParamsSchema.parse(req.params);
+    const { asset, stream } = await checklistItemEvidenceService.openChecklistItemEvidenceContent(req.auth!.companyId, id, itemResultId, evidenceId!);
+    res.set({ "Content-Type": asset.detectedMimeType, "Content-Length": String(asset.sizeBytes),
+      "Content-Disposition": contentDisposition(asset.originalFilename), "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff" });
+    await pipeline(stream, res);
+  }),
+);
+workOrdersRouter.delete(
+  "/:id/check-in/checklist/items/:itemResultId/evidence/:evidenceId",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id, itemResultId, evidenceId } = checklistItemEvidenceParamsSchema.parse(req.params);
+    await checklistItemEvidenceService.deleteChecklistItemEvidence(actor(req), id, itemResultId, evidenceId!);
     res.status(204).end();
   }),
 );

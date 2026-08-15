@@ -58,11 +58,15 @@ describe("evidências no fluxo do Check-in", () => {
       configurable: true,
       value: vi.fn(),
     });
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it("envia foto geral e foto vinculada à avaria, atualizando a quantidade", async () => {
     renderCheckIn();
     expect(await screen.findByText("Fotos da vistoria")).toBeInTheDocument();
+    expect(screen.getByText("Foto obrigatória")).toBeInTheDocument();
+    expect(screen.getByText("Foto obrigatória se houver problema")).toBeInTheDocument();
+    expect(screen.getByText("Foto pendente")).toBeInTheDocument();
     expect(screen.getByText("Nenhuma foto adicionada")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Categoria da foto"), {
@@ -98,6 +102,27 @@ describe("evidências no fluxo do Check-in", () => {
     expect(await within(damageDialog).findByText("risco.webp")).toBeInTheDocument();
     fireEvent.click(within(damageDialog).getByTitle("Fechar"));
     expect(await screen.findByRole("button", { name: "Fotos (1)" })).toBeInTheDocument();
+  }, 30_000);
+
+  it("lista pendências de conclusão e leva ao primeiro item", async () => {
+    vi.spyOn(workshopApi, "completeCheckIn").mockRejectedValueOnce({
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: {
+          error: {
+            code: "CHECKLIST_PHOTO_REQUIRED",
+            message: "Existem itens que exigem foto.",
+            details: { items: [{ itemId: "ext-0", label: "Para-choque dianteiro" }] },
+          },
+        },
+      },
+    });
+    renderCheckIn();
+    fireEvent.click(await screen.findByRole("button", { name: "Concluir Check-in" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Existe 1 item que exige foto");
+    await waitFor(() => expect(Element.prototype.scrollIntoView).toHaveBeenCalled());
+    expect(document.getElementById("checklist-item-ext-0")).toHaveClass("border-amber-500");
   }, 30_000);
 
   it("mantém galerias visíveis e oculta upload/exclusão depois de COMPLETED", async () => {
