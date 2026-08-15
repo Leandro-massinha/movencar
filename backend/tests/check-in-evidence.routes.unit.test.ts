@@ -28,6 +28,23 @@ describe("autorização e headers de evidências do Check-in", () => {
     }
   });
 
+  it("protege todas as rotas de evidência de avaria antes do banco", async () => {
+    const app = createApp();
+    const order = "00000000-0000-4000-8000-000000000001";
+    const damage = "00000000-0000-4000-8000-000000000002";
+    const evidence = "00000000-0000-4000-8000-000000000003";
+    for (const call of [
+      request(app).get(`/api/work-orders/${order}/check-in/damages/${damage}/evidence`),
+      request(app).post(`/api/work-orders/${order}/check-in/damages/${damage}/evidence`),
+      request(app).get(`/api/work-orders/${order}/check-in/damages/${damage}/evidence/${evidence}/content`),
+      request(app).delete(`/api/work-orders/${order}/check-in/damages/${damage}/evidence/${evidence}`),
+    ]) {
+      await call.expect(401).expect(({ body }) =>
+        expect(body.error.code).toBe("AUTH_REQUIRED"),
+      );
+    }
+  });
+
   it.each(["checkins.view", "checkins.update"])(
     "rejeita ausência da permissão %s",
     (permission) => {
@@ -75,6 +92,21 @@ describe("autorização e headers de evidências do Check-in", () => {
     await request(matcher)
       .get("/api/work-orders/ordem-1/check-in/evidence/evidencia-2/inexistente")
       .expect(404);
+  });
+
+  it("captura work order, avaria e evidência sem colisão de parâmetros", async () => {
+    const matcher = express();
+    matcher.get(
+      "/api/work-orders/:workOrderId/check-in/damages/:damageId/evidence/:evidenceId/content",
+      (req, res) => res.json(req.params),
+    );
+    await request(matcher)
+      .get("/api/work-orders/os-1/check-in/damages/avaria-2/evidence/foto-3/content")
+      .expect(200, {
+        workOrderId: "os-1",
+        damageId: "avaria-2",
+        evidenceId: "foto-3",
+      });
   });
 
   it("preserva query parser extended com objetos e listas", async () => {

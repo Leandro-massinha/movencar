@@ -8,7 +8,10 @@ import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { errorHandler } from "../src/lib/errors.js";
 import { LocalPrivateStorageProvider } from "../src/lib/private-storage/index.js";
-import { parseAndStageCheckInEvidence } from "../src/modules/work-orders/check-in-evidence.multipart.js";
+import {
+  parseAndStageCheckInEvidence,
+  parseAndStageDamageEvidence,
+} from "../src/modules/work-orders/check-in-evidence.multipart.js";
 
 const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
 const png = Buffer.from([
@@ -220,6 +223,59 @@ describe("multipart de evidências gerais do Check-in", () => {
       },
     );
   }
+});
+
+describe("multipart de evidências de avaria", () => {
+  let temporaryRoot: string;
+  let storage: LocalPrivateStorageProvider;
+  let app: express.Express;
+
+  beforeEach(async () => {
+    temporaryRoot = await mkdtemp(path.join(tmpdir(), "movencar-damage-upload-"));
+    storage = new LocalPrivateStorageProvider({ root: temporaryRoot, maxBytes: 100 });
+    app = express();
+    app.post("/upload", async (req, res, next) => {
+      try {
+        const result = await parseAndStageDamageEvidence(req, storage, 100);
+        res.status(201).json({ fields: result.fields, staged: result.staged });
+      } catch (error) {
+        next(error);
+      }
+    });
+    app.use(errorHandler);
+  });
+
+  afterEach(async () => {
+    await rm(temporaryRoot, { recursive: true, force: true });
+  });
+
+  it.each([
+    ["JPEG", jpeg, "image/jpeg", "avaria.jpg", "jpg"],
+    ["PNG", png, "image/png", "avaria.png", "png"],
+    ["WebP", webp, "image/webp", "avaria.webp", "webp"],
+  ] as const)("aceita %s e somente caption", async (_label, content, mime, filename, extension) => {
+    const response = await request(app)
+      .post("/upload")
+      .field("caption", "Risco no para-choque")
+      .attach("file", content, { filename, contentType: mime })
+      .expect(201);
+    expect(response.body).toMatchObject({
+      fields: { caption: "Risco no para-choque" },
+      staged: { detectedMimeType: mime, canonicalExtension: extension },
+    });
+    await storage.remove(response.body.staged.stagingKey);
+  });
+
+  it.each(["companyId", "category"])("rejeita campo proibido %s e limpa staging", async (field) => {
+    await request(app)
+      .post("/upload")
+      .field(field, "FRONT")
+      .attach("file", jpeg, { filename: "avaria.jpg", contentType: "image/jpeg" })
+      .expect(400)
+      .expect(({ body }) => expect(body.error.code).toBe("INVALID_MULTIPART_FIELD"));
+    const files = await readdir(path.join(temporaryRoot, "staging")).catch(() => []);
+    expect(files).toEqual([]);
+  });
 });
 
 function controlledMultipartRequest() {

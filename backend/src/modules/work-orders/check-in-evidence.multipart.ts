@@ -1,6 +1,6 @@
 import Busboy from "busboy";
 import type { Request } from "express";
-import { ZodError } from "zod";
+import { ZodError, type ZodType } from "zod";
 import { AppError } from "../../lib/errors.js";
 import {
   PrivateImageValidationError,
@@ -11,6 +11,10 @@ import {
   checkInEvidenceFieldsSchema,
   type CheckInEvidenceFields,
 } from "./check-in-evidence.schemas.js";
+import {
+  damageEvidenceFieldsSchema,
+  type DamageEvidenceFields,
+} from "./check-in-damage-evidence.schemas.js";
 
 export type ParsedCheckInEvidenceUpload = {
   fields: CheckInEvidenceFields;
@@ -22,6 +26,36 @@ export async function parseAndStageCheckInEvidence(
   storage: PrivateStorageProvider,
   maxBytes: number,
 ): Promise<ParsedCheckInEvidenceUpload> {
+  return parseAndStagePrivateEvidence(
+    req,
+    storage,
+    maxBytes,
+    new Set(["category", "caption"]),
+    checkInEvidenceFieldsSchema,
+  );
+}
+
+export async function parseAndStageDamageEvidence(
+  req: Request,
+  storage: PrivateStorageProvider,
+  maxBytes: number,
+): Promise<{ fields: DamageEvidenceFields; staged: StagedPrivateImage }> {
+  return parseAndStagePrivateEvidence(
+    req,
+    storage,
+    maxBytes,
+    new Set(["caption"]),
+    damageEvidenceFieldsSchema,
+  );
+}
+
+async function parseAndStagePrivateEvidence<T>(
+  req: Request,
+  storage: PrivateStorageProvider,
+  maxBytes: number,
+  allowedFields: ReadonlySet<string>,
+  fieldsSchema: ZodType<T>,
+): Promise<{ fields: T; staged: StagedPrivateImage }> {
   const contentType = req.get("content-type") ?? "";
   if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
     throw new AppError(
@@ -98,7 +132,7 @@ export async function parseAndStageCheckInEvidence(
     if (
       info.nameTruncated ||
       info.valueTruncated ||
-      (name !== "category" && name !== "caption") ||
+      !allowedFields.has(name) ||
       Object.hasOwn(rawFields, name)
     ) {
       parsingError ??= new AppError(
@@ -224,7 +258,7 @@ export async function parseAndStageCheckInEvidence(
       );
     }
     if (parsingError) throw parsingError;
-    const fields = checkInEvidenceFieldsSchema.parse(rawFields);
+    const fields = fieldsSchema.parse(rawFields);
     return { fields, staged };
   } catch (error) {
     if (staged) await storage.remove(staged.stagingKey).catch(() => undefined);

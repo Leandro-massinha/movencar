@@ -24,8 +24,13 @@ import {
 } from "./work-orders.schemas.js";
 import * as service from "./work-orders.service.js";
 import * as evidenceService from "./check-in-evidence.service.js";
-import { parseAndStageCheckInEvidence } from "./check-in-evidence.multipart.js";
+import * as damageEvidenceService from "./check-in-damage-evidence.service.js";
+import {
+  parseAndStageCheckInEvidence,
+  parseAndStageDamageEvidence,
+} from "./check-in-evidence.multipart.js";
 import { checkInEvidenceParamsSchema } from "./check-in-evidence.schemas.js";
+import { damageEvidenceParamsSchema } from "./check-in-damage-evidence.schemas.js";
 
 export const workOrdersRouter = Router();
 workOrdersRouter.use(authenticate);
@@ -121,6 +126,86 @@ workOrdersRouter.delete(
   asyncHandler(async (req, res) => {
     const { id, evidenceId } = checkInEvidenceParamsSchema.parse(req.params);
     await evidenceService.deleteCheckInEvidence(actor(req), id, evidenceId);
+    res.status(204).end();
+  }),
+);
+workOrdersRouter.get(
+  "/:id/check-in/damages/:damageId/evidence",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id, damageId } = damageEvidenceParamsSchema.parse(req.params);
+    res.json({
+      data: await damageEvidenceService.listDamageEvidence(
+        req.auth!.companyId,
+        id,
+        damageId,
+      ),
+    });
+  }),
+);
+workOrdersRouter.post(
+  "/:id/check-in/damages/:damageId/evidence",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id, damageId } = damageEvidenceParamsSchema.parse(req.params);
+    await damageEvidenceService.assertDamageEvidenceUploadAllowed(
+      actor(req),
+      id,
+      damageId,
+    );
+    const upload = await parseAndStageDamageEvidence(
+      req,
+      evidenceService.checkInEvidenceStorage,
+      env.PHOTO_MAX_BYTES,
+    );
+    res.status(201).json({
+      evidence: await damageEvidenceService.createDamageEvidence(
+        actor(req),
+        id,
+        damageId,
+        upload.fields,
+        upload.staged,
+      ),
+    });
+  }),
+);
+workOrdersRouter.get(
+  "/:id/check-in/damages/:damageId/evidence/:evidenceId/content",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id, damageId, evidenceId } = damageEvidenceParamsSchema.parse(
+      req.params,
+    );
+    const { asset, stream } =
+      await damageEvidenceService.openDamageEvidenceContent(
+        req.auth!.companyId,
+        id,
+        damageId,
+        evidenceId!,
+      );
+    res.set({
+      "Content-Type": asset.detectedMimeType,
+      "Content-Length": String(asset.sizeBytes),
+      "Content-Disposition": contentDisposition(asset.originalFilename),
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    await pipeline(stream, res);
+  }),
+);
+workOrdersRouter.delete(
+  "/:id/check-in/damages/:damageId/evidence/:evidenceId",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id, damageId, evidenceId } = damageEvidenceParamsSchema.parse(
+      req.params,
+    );
+    await damageEvidenceService.deleteDamageEvidence(
+      actor(req),
+      id,
+      damageId,
+      evidenceId!,
+    );
     res.status(204).end();
   }),
 );
