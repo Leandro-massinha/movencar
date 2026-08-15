@@ -1,4 +1,4 @@
-import { AlertTriangle, Car, CheckCircle2, Gauge, MapPin } from "lucide-react";
+import { AlertTriangle, Camera, Car, CheckCircle2, Gauge, MapPin } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -12,7 +12,12 @@ import {
   Textarea,
 } from "../components/ui";
 import { VehicleDamageMap } from "../components/VehicleDamageMap";
+import {
+  PhotoEvidenceGallery,
+  PhotoEvidenceUploader,
+} from "../components/PhotoEvidence";
 import { useAuth } from "../hooks/useAuth";
+import { checkInEvidenceCategoryLabels } from "../i18n/pt-BR";
 import { hasPermission } from "../lib/permissions";
 import { getApiStatus, getPublicErrorMessage } from "../services/api";
 import {
@@ -21,6 +26,11 @@ import {
   type DamageLocation,
   type ObservationStatus,
 } from "../services/workshop";
+import {
+  photoEvidenceApi,
+  type CheckInEvidenceCategory,
+  type PhotoEvidence,
+} from "../services/photoEvidence";
 
 const statusLabels: Record<ObservationStatus, string> = {
   OK: "OK",
@@ -83,6 +93,18 @@ export function CheckInPage() {
   const [damageType, setDamageType] = useState("SCRATCH");
   const [severity, setSeverity] = useState("MINOR");
   const [description, setDescription] = useState("");
+  const [generalEvidence, setGeneralEvidence] = useState<PhotoEvidence[]>([]);
+  const [generalEvidenceError, setGeneralEvidenceError] = useState("");
+  const [generalCategory, setGeneralCategory] =
+    useState<CheckInEvidenceCategory>("FRONT");
+  const [selectedDamage, setSelectedDamage] = useState<
+    CheckInWorkspace["checkIn"]["damages"][number] | null
+  >(null);
+  const [damageEvidence, setDamageEvidence] = useState<PhotoEvidence[]>([]);
+  const [damageEvidenceError, setDamageEvidenceError] = useState("");
+  const [damageEvidenceCounts, setDamageEvidenceCounts] = useState<
+    Record<string, number>
+  >({});
 
   const load = useCallback(async () => {
     try {
@@ -109,6 +131,55 @@ export function CheckInPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadGeneralEvidence = useCallback(async () => {
+    try {
+      setGeneralEvidence(await photoEvidenceApi.listCheckIn(id));
+      setGeneralEvidenceError("");
+    } catch (cause) {
+      setGeneralEvidenceError(
+        getPublicErrorMessage(cause, "Não foi possível carregar as fotos da vistoria."),
+      );
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void loadGeneralEvidence();
+  }, [loadGeneralEvidence]);
+
+  useEffect(() => {
+    if (!data?.checkIn.damages.length) {
+      setDamageEvidenceCounts({});
+      return;
+    }
+    let active = true;
+    void Promise.all(
+      data.checkIn.damages.map(async (damage) => [
+        damage.id,
+        (await photoEvidenceApi.listDamage(id, damage.id)).length,
+      ] as const),
+    ).then((entries) => {
+      if (active) setDamageEvidenceCounts(Object.fromEntries(entries));
+    }).catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [data?.checkIn.damages, id]);
+
+  const openDamageEvidence = async (
+    damage: CheckInWorkspace["checkIn"]["damages"][number],
+  ) => {
+    setSelectedDamage(damage);
+    setDamageEvidence([]);
+    setDamageEvidenceError("");
+    try {
+      setDamageEvidence(await photoEvidenceApi.listDamage(id, damage.id));
+    } catch (cause) {
+      setDamageEvidenceError(
+        getPublicErrorMessage(cause, "Não foi possível carregar as fotos da avaria."),
+      );
+    }
+  };
 
   const items = useMemo(
     () =>
@@ -171,7 +242,7 @@ export function CheckInPage() {
     if (!damageLocation) return;
     setSaving(true);
     try {
-      await workshopApi.createDamage(id, {
+      const damage = await workshopApi.createDamage(id, {
         location: damageLocation,
         damageType,
         severity,
@@ -180,6 +251,7 @@ export function CheckInPage() {
       setDamageLocation(null);
       setDescription("");
       await load();
+      await openDamageEvidence(damage);
     } catch (cause) {
       setError(getPublicErrorMessage(cause));
     } finally {
@@ -295,6 +367,69 @@ export function CheckInPage() {
 
       <Card className="p-5">
         <h2 className="flex items-center gap-2 font-bold">
+          <Camera className="size-5" /> Fotos da vistoria
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Registre imagens privadas do estado do veículo durante o Check-in.
+        </p>
+        {canUpdate && (
+          <div className="mt-4">
+            <PhotoEvidenceUploader
+              onUpload={(file, caption) =>
+                photoEvidenceApi.uploadCheckIn(id, {
+                  file,
+                  caption,
+                  category: generalCategory,
+                })
+              }
+              onUploaded={(evidence) =>
+                setGeneralEvidence((current) => [...current, evidence])
+              }
+            >
+              <label className="block text-sm font-semibold text-slate-800">
+                Categoria
+                <Select
+                  aria-label="Categoria da foto"
+                  value={generalCategory}
+                  onChange={(event) =>
+                    setGeneralCategory(event.target.value as CheckInEvidenceCategory)
+                  }
+                >
+                  {Object.entries(checkInEvidenceCategoryLabels).map(
+                    ([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ),
+                  )}
+                </Select>
+              </label>
+            </PhotoEvidenceUploader>
+          </div>
+        )}
+        {generalEvidenceError && (
+          <p role="alert" className="mt-3 text-sm text-red-700">{generalEvidenceError}</p>
+        )}
+        <div className="mt-4">
+          <PhotoEvidenceGallery
+            evidence={generalEvidence}
+            readonly={!canUpdate}
+            contextLabel={(item) =>
+              checkInEvidenceCategoryLabels[item.category ?? "OTHER"]
+            }
+            loadContent={(evidenceId) =>
+              photoEvidenceApi.getCheckInContent(id, evidenceId)
+            }
+            onDelete={async (evidenceId) => {
+              await photoEvidenceApi.deleteCheckIn(id, evidenceId);
+              setGeneralEvidence((current) =>
+                current.filter(({ id: currentId }) => currentId !== evidenceId),
+              );
+            }}
+          />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="flex items-center gap-2 font-bold">
           <MapPin className="size-5" /> Mapa de avarias
         </h2>
         <p className="mt-1 text-sm text-slate-500">
@@ -313,18 +448,28 @@ export function CheckInPage() {
             {data.checkIn.damages.map((damage) => (
               <div
                 key={damage.id}
-                className="flex items-center justify-between rounded-md border p-3 text-sm"
+                className="flex flex-col gap-3 rounded-md border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
               >
                 <span>
                   {locationLabels[damage.location]} · {damageTypeLabels[damage.damageType] ?? "Outro"}
                 </span>
-                <Badge tone={damage.severity === "SEVERE" ? "danger" : "warning"}>
-                  {damage.severity === "MINOR"
-                    ? "Leve"
-                    : damage.severity === "MODERATE"
-                      ? "Moderada"
-                      : "Grave"}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={damage.severity === "SEVERE" ? "danger" : "warning"}>
+                    {damage.severity === "MINOR"
+                      ? "Leve"
+                      : damage.severity === "MODERATE"
+                        ? "Moderada"
+                        : "Grave"}
+                  </Badge>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void openDamageEvidence(damage)}
+                  >
+                    <Camera className="size-4" />
+                    Fotos ({damageEvidenceCounts[damage.id] ?? 0})
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -554,6 +699,74 @@ export function CheckInPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={selectedDamage !== null}
+        title={
+          selectedDamage
+            ? `Fotos da avaria · ${locationLabels[selectedDamage.location]}`
+            : "Fotos da avaria"
+        }
+        onClose={() => setSelectedDamage(null)}
+      >
+        {selectedDamage && (
+          <div className="max-h-[80vh] space-y-4 overflow-y-auto pr-1">
+            <p className="text-sm text-slate-600">
+              {damageTypeLabels[selectedDamage.damageType] ?? "Avaria"}
+              {selectedDamage.description ? ` · ${selectedDamage.description}` : ""}
+            </p>
+            {canUpdate && (
+              <PhotoEvidenceUploader
+                onUpload={(file, caption) =>
+                  photoEvidenceApi.uploadDamage(id, selectedDamage.id, {
+                    file,
+                    caption,
+                  })
+                }
+                onUploaded={(evidence) => {
+                  setDamageEvidence((current) => [...current, evidence]);
+                  setDamageEvidenceCounts((current) => ({
+                    ...current,
+                    [selectedDamage.id]: (current[selectedDamage.id] ?? 0) + 1,
+                  }));
+                }}
+              />
+            )}
+            {damageEvidenceError && (
+              <p role="alert" className="text-sm text-red-700">{damageEvidenceError}</p>
+            )}
+            <PhotoEvidenceGallery
+              evidence={damageEvidence}
+              readonly={!canUpdate}
+              contextLabel={() => locationLabels[selectedDamage.location]}
+              loadContent={(evidenceId) =>
+                photoEvidenceApi.getDamageContent(
+                  id,
+                  selectedDamage.id,
+                  evidenceId,
+                )
+              }
+              onDelete={async (evidenceId) => {
+                await photoEvidenceApi.deleteDamage(
+                  id,
+                  selectedDamage.id,
+                  evidenceId,
+                );
+                setDamageEvidence((current) =>
+                  current.filter(({ id: currentId }) => currentId !== evidenceId),
+                );
+                setDamageEvidenceCounts((current) => ({
+                  ...current,
+                  [selectedDamage.id]: Math.max(
+                    0,
+                    (current[selectedDamage.id] ?? 1) - 1,
+                  ),
+                }));
+              }}
+            />
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { CustomerStatus, CustomerType } from "../services/customers";
 import type { FuelType, VehicleStatus } from "../services/vehicles";
 import type { HistoryEventType } from "../services/vehicleHistory";
+import type { CheckInEvidenceCategory } from "../services/photoEvidence";
 
 export const locale = "pt-BR" as const;
 export const currency = "BRL" as const;
@@ -104,6 +105,23 @@ export const inspectionStatusLabels = {
   NOT_CHECKED: "Não verificado",
   NOT_APPLICABLE: "Não aplicável",
 } as const;
+export const checkInEvidenceCategoryLabels: Record<
+  CheckInEvidenceCategory,
+  string
+> = {
+  FRONT: "Frente",
+  REAR: "Traseira",
+  LEFT_SIDE: "Lateral esquerda",
+  RIGHT_SIDE: "Lateral direita",
+  DASHBOARD: "Painel",
+  ODOMETER: "Odômetro",
+  FUEL: "Combustível",
+  INTERIOR_FRONT: "Interior dianteiro",
+  INTERIOR_REAR: "Interior traseiro",
+  TRUNK: "Porta-malas",
+  ENGINE_BAY: "Cofre do motor",
+  OTHER: "Outro",
+};
 export const customerContactTypeLabels = {
   PHONE: "Telefone",
   WHATSAPP: "WhatsApp",

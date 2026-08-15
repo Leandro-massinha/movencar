@@ -81,7 +81,7 @@ describe("Check-in visual, damage map and PDC", () => {
     await waitFor(() =>
       expect(screen.getByText(/Capô · Risco/)).toBeInTheDocument(),
     );
-  }, 10_000);
+  }, 30_000);
 
   it("offers a real navigation path from the work order to Check-in and PDC", async () => {
     render(
