@@ -18,6 +18,7 @@ export type StagedPrivateImage = {
   stagingKey: string;
   storageKey: string;
   originalFilename: string;
+  declaredMimeType: string;
   detectedMimeType: AllowedImageMimeType;
   canonicalExtension: "jpg" | "png" | "webp";
   size: number;

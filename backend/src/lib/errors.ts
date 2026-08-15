@@ -26,8 +26,9 @@ export function errorHandler(
   error: unknown,
   req: Request,
   res: Response,
-  _next: NextFunction,
+  next: NextFunction,
 ) {
+  if (res.headersSent) return next(error);
   if (error instanceof ZodError)
     return res
       .status(400)

@@ -83,6 +83,7 @@ export class LocalPrivateStorageProvider implements PrivateStorageProvider {
     const temporaryPath = `${stagingPath}.writing`;
     const hash = createHash("sha256");
     let size = 0;
+    let tooLarge = false;
     let header = Buffer.alloc(0);
     let stream: ReturnType<typeof createWriteStream> | undefined;
 
@@ -96,10 +97,8 @@ export class LocalPrivateStorageProvider implements PrivateStorageProvider {
         if (chunk.length === 0) continue;
         size += chunk.length;
         if (size > this.maxBytes) {
-          throw new PrivateImageValidationError(
-            "PHOTO_TOO_LARGE",
-            "A imagem excede o limite permitido.",
-          );
+          tooLarge = true;
+          continue;
         }
         if (header.length < HEADER_BYTES) {
           header = Buffer.concat([header, chunk.subarray(0, HEADER_BYTES - header.length)]);
@@ -113,6 +112,12 @@ export class LocalPrivateStorageProvider implements PrivateStorageProvider {
       stream.end();
       await once(stream, "close");
       stream = undefined;
+      if (tooLarge) {
+        throw new PrivateImageValidationError(
+          "PHOTO_TOO_LARGE",
+          "A imagem excede o limite permitido.",
+        );
+      }
 
       const detected = validateImageIdentity(
         header,
@@ -126,6 +131,7 @@ export class LocalPrivateStorageProvider implements PrivateStorageProvider {
         stagingKey,
         storageKey,
         originalFilename,
+        declaredMimeType: input.declaredMimeType.trim().toLowerCase(),
         detectedMimeType: detected.mimeType,
         canonicalExtension: detected.extension,
         size,

@@ -29,4 +29,22 @@ describe("work order route authorization", () => {
     ])
       expect(routes).toContain(permission);
   });
+
+  it("keeps private Check-in evidence contextual and permission-bound", () => {
+    expect(routes).toContain('/:id/check-in/evidence"');
+    expect(routes).toContain(
+      '/:id/check-in/evidence/:evidenceId/content"',
+    );
+    expect(routes).toContain('requirePermission("checkins.view")');
+    expect(routes).toContain('requirePermission("checkins.update")');
+    expect(routes).not.toContain('/api/files/:id');
+    for (const header of [
+      "Content-Type",
+      "Content-Length",
+      "Content-Disposition",
+      "private, no-store",
+      "nosniff",
+    ])
+      expect(routes).toContain(header);
+  });
 });

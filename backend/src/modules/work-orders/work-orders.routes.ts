@@ -1,6 +1,8 @@
 import type { Request } from "express";
 import { Router } from "express";
+import { pipeline } from "node:stream/promises";
 import { asyncHandler } from "../../lib/errors.js";
+import { env } from "../../config/env.js";
 import { authenticate, requirePermission } from "../auth/auth.middleware.js";
 import { requireModule } from "../platform/module-gate.js";
 import {
@@ -21,6 +23,9 @@ import {
   workOrderIdSchema,
 } from "./work-orders.schemas.js";
 import * as service from "./work-orders.service.js";
+import * as evidenceService from "./check-in-evidence.service.js";
+import { parseAndStageCheckInEvidence } from "./check-in-evidence.multipart.js";
+import { checkInEvidenceParamsSchema } from "./check-in-evidence.schemas.js";
 
 export const workOrdersRouter = Router();
 workOrdersRouter.use(authenticate);
@@ -58,6 +63,66 @@ workOrdersRouter.post(
       ),
     }),
   ),
+);
+workOrdersRouter.get(
+  "/:id/check-in/evidence",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    res.json({
+      data: await evidenceService.listCheckInEvidence(req.auth!.companyId, id),
+    });
+  }),
+);
+workOrdersRouter.post(
+  "/:id/check-in/evidence",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id } = workOrderIdSchema.parse(req.params);
+    await evidenceService.assertCheckInEvidenceUploadAllowed(actor(req), id);
+    const upload = await parseAndStageCheckInEvidence(
+      req,
+      evidenceService.checkInEvidenceStorage,
+      env.PHOTO_MAX_BYTES,
+    );
+    res.status(201).json({
+      evidence: await evidenceService.createCheckInEvidence(
+        actor(req),
+        id,
+        upload.fields,
+        upload.staged,
+      ),
+    });
+  }),
+);
+workOrdersRouter.get(
+  "/:id/check-in/evidence/:evidenceId/content",
+  requirePermission("checkins.view"),
+  asyncHandler(async (req, res) => {
+    const { id, evidenceId } = checkInEvidenceParamsSchema.parse(req.params);
+    const { asset, stream } = await evidenceService.openCheckInEvidenceContent(
+      req.auth!.companyId,
+      id,
+      evidenceId,
+    );
+    res.set({
+      "Content-Type": asset.detectedMimeType,
+      "Content-Length": String(asset.sizeBytes),
+      "Content-Disposition": contentDisposition(asset.originalFilename),
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    await pipeline(stream, res);
+  }),
+);
+workOrdersRouter.delete(
+  "/:id/check-in/evidence/:evidenceId",
+  requirePermission("checkins.update"),
+  asyncHandler(async (req, res) => {
+    const { id, evidenceId } = checkInEvidenceParamsSchema.parse(req.params);
+    await evidenceService.deleteCheckInEvidence(actor(req), id, evidenceId);
+    res.status(204).end();
+  }),
 );
 workOrdersRouter.get(
   "/:id/check-in/workspace",
@@ -99,6 +164,18 @@ workOrdersRouter.post(
       });
   }),
 );
+
+export function contentDisposition(filename: string): string {
+  const safeAscii = filename
+    .replace(/[^\x20-\x7e]/gu, "_")
+    .replace(/["\\]/gu, "_")
+    .slice(0, 180) || "evidencia";
+  const encoded = encodeURIComponent(filename).replace(
+    /[!'()*]/gu,
+    (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+  return `inline; filename="${safeAscii}"; filename*=UTF-8''${encoded}`;
+}
 workOrdersRouter.get(
   "/:id/pdc",
   requirePermission("pdc.view"),
